@@ -1,0 +1,11 @@
+{
+  "steps": [
+    {
+      "role": "irrigation",
+      "guidance": "Water during dry spells at the reported interval.",
+      "stage": "Established plants",
+      "allOfConditions": ["Dry spell"],
+      "interval": { "kind": "every", "unit": "d", "minimum": 10, "maximum": 14 }
+    }
+  ]
+}

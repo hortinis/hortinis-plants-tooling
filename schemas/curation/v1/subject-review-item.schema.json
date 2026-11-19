@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:curation:v1:subject-review-item",
+  "title": "GROW source subject mapping review item",
+  "type": "object",
+  "required": [
+    "id",
+    "reviewState",
+    "sourceLocator",
+    "taxonomyCandidateId",
+    "proposedNextStep"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "reviewState": { "const": "unreviewed" },
+    "sourceRecordKey": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/qualifiedSourceRecordKey"
+    },
+    "sourceRecordId": { "type": "string", "minLength": 1 },
+    "sourceLocator": { "type": "string", "minLength": 1 },
+    "taxonomyCandidateId": { "type": "string", "minLength": 1 },
+    "proposedNextStep": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": true,
+  "anyOf": [
+    {
+      "required": ["sourceRecordKey"],
+      "properties": { "sourceRecordKey": true }
+    },
+    { "required": ["sourceRecordId"], "properties": { "sourceRecordId": true } }
+  ]
+}

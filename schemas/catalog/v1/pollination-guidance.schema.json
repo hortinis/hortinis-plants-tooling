@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:pollination-guidance",
+  "title": "Source-specific pollination guidance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["evidenceBasis", "sourceSetting", "rules", "limitations"],
+  "properties": {
+    "evidenceBasis": { "const": "horticultural-advice" },
+    "sourceSetting": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/rule" }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+      }
+    },
+    "applicabilityPath": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+      }
+    }
+  },
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "effect",
+        "mechanism",
+        "outcome",
+        "recipientQualifier",
+        "when"
+      ],
+      "properties": {
+        "effect": {
+          "enum": [
+            "required-for-set",
+            "improves-production",
+            "risk-to-quality",
+            "allow-pollen-transfer"
+          ]
+        },
+        "mechanism": {
+          "enum": ["cross-pollination", "insect-mediated-pollen-transfer"]
+        },
+        "outcome": {
+          "enum": [
+            "fruit-set",
+            "nut-set",
+            "crop-size",
+            "kernel-sweetness",
+            "adequate-pollination"
+          ]
+        },
+        "recipientQualifier": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+        },
+        "when": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+          }
+        },
+        "pollenDonor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["subject", "qualifier"],
+          "properties": {
+            "subject": {
+              "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/subjectReference"
+            },
+            "qualifier": {
+              "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+            }
+          }
+        },
+        "pollenCarrier": { "enum": ["insects", "wind"] }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "mechanism": { "const": "cross-pollination" } }
+          },
+          "then": {
+            "required": ["pollenDonor"],
+            "properties": {
+              "effect": {
+                "enum": [
+                  "required-for-set",
+                  "improves-production",
+                  "risk-to-quality"
+                ]
+              },
+              "pollenDonor": true
+            }
+          },
+          "else": {
+            "properties": {
+              "effect": { "const": "allow-pollen-transfer" },
+              "outcome": { "const": "adequate-pollination" },
+              "pollenCarrier": { "const": "insects" }
+            },
+            "required": ["pollenCarrier"],
+            "not": {
+              "properties": { "pollenDonor": true },
+              "required": ["pollenDonor"]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

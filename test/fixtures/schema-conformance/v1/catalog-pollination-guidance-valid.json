@@ -1,0 +1,23 @@
+{
+  "evidenceBasis": "horticultural-advice",
+  "sourceSetting": "Home-garden guide",
+  "rules": [
+    {
+      "mechanism": "cross-pollination",
+      "effect": "required-for-set",
+      "outcome": "fruit-set",
+      "recipientQualifier": "Female vines in a dioecious planting",
+      "when": ["Donor and recipient are flowering at the same time"],
+      "pollenDonor": {
+        "subject": {
+          "type": "plant-concept",
+          "id": "plant-concept-kiwi"
+        },
+        "qualifier": "Compatible male vine"
+      }
+    }
+  ],
+  "limitations": [
+    "Check local flowering overlap for the intended cultivar pair."
+  ]
+}

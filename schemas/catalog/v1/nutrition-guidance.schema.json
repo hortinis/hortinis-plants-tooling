@@ -1,0 +1,573 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:nutrition-guidance",
+  "title": "Reviewed source nutrition guidance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["evaluation", "relationship", "actions"],
+  "properties": {
+    "evaluation": { "const": "source-guidance-only" },
+    "relationship": { "enum": ["independent", "sequence"] },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/action" }
+    },
+    "applicabilityPath": {
+      "$ref": "urn:hortinis:plants:schema:v1:establishment-guidance#/properties/applicabilityPath"
+    },
+    "sourceSetting": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+    },
+    "qualifications": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "relationship": { "const": "sequence" } } },
+      "then": {
+        "properties": { "actions": { "type": "array", "minItems": 2 } }
+      }
+    }
+  ],
+  "$defs": {
+    "amount": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["basis", "nutrient", "original", "per", "period"],
+          "properties": {
+            "basis": { "const": "nutrient-mass" },
+            "nutrient": { "enum": ["N", "P", "K", "B", "P2O5", "K2O"] },
+            "original": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["value", "unit"],
+                "properties": {
+                  "value": { "type": "number", "exclusiveMinimum": 0 },
+                  "unit": { "const": "lb" }
+                }
+              }
+            },
+            "per": { "const": "acre" },
+            "period": { "const": "program-total" },
+            "approximate": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["basis", "original", "per", "period"],
+          "properties": {
+            "basis": { "const": "product-mass" },
+            "original": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["value", "unit"],
+                "properties": {
+                  "value": { "type": "number", "exclusiveMinimum": 0 },
+                  "unit": { "enum": ["g", "oz"] }
+                }
+              }
+            },
+            "per": { "const": "seed-piece" },
+            "period": { "const": "per-application" },
+            "approximate": { "type": "boolean" }
+          }
+        }
+      ]
+    },
+    "action": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["action", "when", "prerequisites"],
+          "properties": {
+            "action": { "const": "seek-fertilizer-advice" },
+            "when": { "const": "fertilizer-advice-needed" },
+            "prerequisites": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "local-agronomist-recommendation",
+                  "soil-test",
+                  "product-label",
+                  "product-nutrient-concentration",
+                  "soil-texture",
+                  "tissue-analysis",
+                  "symptom-assessment"
+                ]
+              },
+              "allOf": [
+                { "contains": { "const": "local-agronomist-recommendation" } }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["action", "prerequisites"],
+          "properties": {
+            "action": { "const": "base-fertilization-on-soil-test" },
+            "prerequisites": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "local-agronomist-recommendation",
+                  "soil-test",
+                  "product-label",
+                  "product-nutrient-concentration",
+                  "soil-texture",
+                  "tissue-analysis",
+                  "symptom-assessment"
+                ]
+              },
+              "allOf": [{ "contains": { "const": "soil-test" } }]
+            },
+            "tests": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "enum": ["pH", "P", "K"] }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "nutrients",
+            "when",
+            "prerequisites",
+            "timing"
+          ],
+          "properties": {
+            "action": { "const": "correct-soil-nutrient-levels" },
+            "nutrients": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "enum": ["N", "P", "K", "B", "P2O5", "K2O"] }
+            },
+            "when": { "const": "soil-test-indicates-need" },
+            "prerequisites": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "local-agronomist-recommendation",
+                  "soil-test",
+                  "product-label",
+                  "product-nutrient-concentration",
+                  "soil-texture",
+                  "tissue-analysis",
+                  "symptom-assessment"
+                ]
+              },
+              "allOf": [{ "contains": { "const": "soil-test" } }]
+            },
+            "timing": {
+              "$ref": "urn:hortinis:plants:schema:v1:establishment-guidance#/$defs/timing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["action", "when"],
+          "properties": {
+            "action": { "const": "supplemental-feed-unnecessary" },
+            "when": { "const": "growing-in-border" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["action", "when", "effects"],
+          "properties": {
+            "action": { "const": "observe-soil-fertility-effect" },
+            "when": { "const": "poorly-prepared-nutrient-poor-soil" },
+            "effects": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "enum": ["slow-growth", "reduced-flavour"] }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "nutrient",
+            "frequency",
+            "riskCondition",
+            "prerequisites",
+            "cautions"
+          ],
+          "properties": {
+            "action": { "const": "assess-possible-deficiency" },
+            "nutrient": { "enum": ["N", "P", "K", "B", "P2O5", "K2O"] },
+            "frequency": { "const": "uncommon" },
+            "riskCondition": { "const": "hot-dry-weather" },
+            "prerequisites": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "local-agronomist-recommendation",
+                  "soil-test",
+                  "product-label",
+                  "product-nutrient-concentration",
+                  "soil-texture",
+                  "tissue-analysis",
+                  "symptom-assessment"
+                ]
+              },
+              "allOf": [
+                { "contains": { "const": "symptom-assessment" } },
+                { "contains": { "const": "tissue-analysis" } }
+              ]
+            },
+            "cautions": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "narrow-adequacy-to-toxicity-margin",
+                  "consider-rotation-crop-sensitivity",
+                  "soil-test-unreliable-for-boron"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["action", "material", "when", "timing", "purpose"],
+          "properties": {
+            "action": { "const": "add-organic-amendment" },
+            "material": { "const": "animal-manure" },
+            "when": { "const": "using-animal-manure" },
+            "timing": {
+              "$ref": "urn:hortinis:plants:schema:v1:establishment-guidance#/$defs/timing"
+            },
+            "purpose": { "const": "allow-decomposition" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["action", "prerequisites", "phases"],
+          "properties": {
+            "action": { "const": "switch-seasonal-feed" },
+            "prerequisites": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "local-agronomist-recommendation",
+                  "soil-test",
+                  "product-label",
+                  "product-nutrient-concentration",
+                  "soil-texture",
+                  "tissue-analysis",
+                  "symptom-assessment"
+                ]
+              },
+              "allOf": [{ "contains": { "const": "product-label" } }]
+            },
+            "phases": {
+              "type": "array",
+              "minItems": 2,
+              "uniqueItems": true,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["formulation", "from", "through"],
+                "properties": {
+                  "formulation": {
+                    "enum": [
+                      "calcium-nitrate",
+                      "ammonium-nitrate",
+                      "high-nitrogen-summer-citrus-feed",
+                      "balanced-winter-citrus-feed"
+                    ]
+                  },
+                  "from": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["month", "part"],
+                    "properties": {
+                      "month": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 12
+                      },
+                      "part": {
+                        "enum": ["early", "mid", "late", "whole-month"]
+                      }
+                    }
+                  },
+                  "through": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["month", "part"],
+                    "properties": {
+                      "month": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 12
+                      },
+                      "part": {
+                        "enum": ["early", "mid", "late", "whole-month"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "prerequisites",
+            "soil",
+            "total",
+            "preferredSources",
+            "first",
+            "remainder"
+          ],
+          "properties": {
+            "action": { "const": "apply-split-nutrient-program" },
+            "prerequisites": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "local-agronomist-recommendation",
+                  "soil-test",
+                  "product-label",
+                  "product-nutrient-concentration",
+                  "soil-texture",
+                  "tissue-analysis",
+                  "symptom-assessment"
+                ]
+              },
+              "allOf": [
+                { "contains": { "const": "product-nutrient-concentration" } }
+              ]
+            },
+            "soil": { "const": "mineral" },
+            "total": {
+              "allOf": [
+                { "$ref": "#/$defs/amount" },
+                {
+                  "type": "object",
+                  "properties": { "basis": { "const": "nutrient-mass" } }
+                }
+              ]
+            },
+            "preferredSources": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "calcium-nitrate",
+                  "ammonium-nitrate",
+                  "high-nitrogen-summer-citrus-feed",
+                  "balanced-winter-citrus-feed"
+                ]
+              }
+            },
+            "first": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["fractionOfTotal", "timing"],
+              "properties": {
+                "fractionOfTotal": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "exclusiveMaximum": 1
+                },
+                "timing": {
+                  "$ref": "urn:hortinis:plants:schema:v1:establishment-guidance#/$defs/timing"
+                }
+              }
+            },
+            "remainder": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["method", "applicationOptions", "repeatInterval"],
+              "properties": {
+                "method": { "const": "side-dress" },
+                "applicationOptions": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": { "type": "integer", "minimum": 1 }
+                },
+                "repeatInterval": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["value", "unit"],
+                  "properties": {
+                    "value": { "type": "number", "exclusiveMinimum": 0 },
+                    "unit": { "const": "wk" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "prerequisites",
+            "purpose",
+            "formulationExamples",
+            "amount",
+            "timing",
+            "placement",
+            "unresolvedSourceRates"
+          ],
+          "properties": {
+            "action": { "const": "apply-planting-fertilizer-benchmark" },
+            "prerequisites": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "local-agronomist-recommendation",
+                  "soil-test",
+                  "product-label",
+                  "product-nutrient-concentration",
+                  "soil-texture",
+                  "tissue-analysis",
+                  "symptom-assessment"
+                ]
+              },
+              "allOf": [
+                { "contains": { "const": "soil-texture" } },
+                { "contains": { "const": "product-label" } }
+              ]
+            },
+            "purpose": { "const": "increase-yield" },
+            "formulationExamples": {
+              "type": "array",
+              "minItems": 2,
+              "uniqueItems": true,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["soilTexture", "sourceGrade"],
+                "properties": {
+                  "soilTexture": { "enum": ["heavier", "lighter"] },
+                  "sourceGrade": {
+                    "type": "string",
+                    "pattern": "^[0-9]+-[0-9]+-[0-9]+$"
+                  }
+                }
+              }
+            },
+            "amount": {
+              "allOf": [
+                { "$ref": "#/$defs/amount" },
+                {
+                  "type": "object",
+                  "properties": { "basis": { "const": "product-mass" } }
+                }
+              ]
+            },
+            "timing": {
+              "$ref": "urn:hortinis:plants:schema:v1:establishment-guidance#/$defs/timing"
+            },
+            "placement": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["locations", "soilBetweenProductAndSeedPiece"],
+              "properties": {
+                "locations": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": { "enum": ["planting-row", "planting-hole"] }
+                },
+                "soilBetweenProductAndSeedPiece": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["value", "unit"],
+                    "properties": {
+                      "value": { "type": "number", "exclusiveMinimum": 0 },
+                      "unit": { "enum": ["cm", "in"] }
+                    }
+                  }
+                }
+              }
+            },
+            "unresolvedSourceRates": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["printed", "issue"],
+                "properties": {
+                  "printed": { "type": "string", "minLength": 1 },
+                  "issue": {
+                    "enum": [
+                      "ambiguous-area-unit",
+                      "ambiguous-volume-unit-and-product-density"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

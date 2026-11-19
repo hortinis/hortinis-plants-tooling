@@ -1,0 +1,17 @@
+{
+  "options": [
+    {
+      "role": "preferred",
+      "light": "full_sun",
+      "moisture": "moist",
+      "drainage": "well_drained"
+    },
+    {
+      "role": "suitable",
+      "light": "partial_shade",
+      "moisture": "moist",
+      "drainage": "well_drained",
+      "appliesWhen": "Outdoors after establishment"
+    }
+  ]
+}

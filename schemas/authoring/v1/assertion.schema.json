@@ -1,0 +1,510 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:authoring:v1:assertion",
+  "title": "Hortinis authored source assertion",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "subject",
+    "predicate",
+    "value",
+    "contextId",
+    "evidenceReferenceIds",
+    "reviewId"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "subject": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/subjectReference"
+    },
+    "predicate": {
+      "enum": [
+        "life_cycle",
+        "cultivar_description",
+        "plant_form_description",
+        "horticultural_classification",
+        "regulated_seed_eligibility",
+        "botanical_scope",
+        "taxonomic_source_usage",
+        "growth_habit",
+        "mature_height",
+        "mature_spread",
+        "sun_requirement",
+        "soil_texture",
+        "site_guidance",
+        "rotation_classification",
+        "harvest_guidance",
+        "care_guidance",
+        "nutrition_guidance",
+        "pollination_guidance",
+        "watering_guidance",
+        "establishment_guidance",
+        "temperature_guidance",
+        "soil_ph_range",
+        "drainage_requirement",
+        "water_requirement",
+        "frost_sensitivity",
+        "minimum_germination_temperature",
+        "germination_profile",
+        "growing_temperature",
+        "germination_days",
+        "days_to_first_harvest",
+        "spacing",
+        "sowing_window",
+        "transplant_window",
+        "harvest_window",
+        "cultivation_window",
+        "growing_degree_days"
+      ]
+    },
+    "value": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/jsonValue"
+    },
+    "contextId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "evidenceReferenceIds": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/identifierList"
+    },
+    "reviewId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["predicate"],
+        "properties": {
+          "predicate": { "const": "horticultural_classification" }
+        }
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["basis", "groups"],
+            "properties": {
+              "basis": {
+                "enum": [
+                  "fruiting-pattern",
+                  "crop-use",
+                  "establishment-and-harvest-season"
+                ]
+              },
+              "groups": {
+                "type": "array",
+                "minItems": 2,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["predicate"],
+        "properties": { "predicate": { "const": "regulated_seed_eligibility" } }
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["scientificName", "alternatives"],
+            "properties": {
+              "scientificName": { "type": "string", "minLength": 1 },
+              "alternatives": {
+                "type": "array",
+                "minItems": 2,
+                "uniqueItems": true,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["selection", "name"],
+                  "properties": {
+                    "selection": {
+                      "enum": ["cultivar-denomination", "conforming-local-type"]
+                    },
+                    "name": { "type": "string", "minLength": 1 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "plant_form_description" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["plantPart", "description"],
+            "properties": {
+              "plantPart": { "enum": ["flowerhead", "foliage", "fruit"] },
+              "description": {
+                "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "cultivar_description" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "subject": {
+            "type": "object",
+            "properties": { "type": { "const": "cultivar" } }
+          },
+          "value": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["description"],
+            "properties": {
+              "description": {
+                "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+              },
+              "scheme": { "const": "plantdepommedeterre-qualite-culinaire" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "botanical_scope" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["relation", "scientificName", "sourceIdentifier"],
+            "properties": {
+              "relation": { "const": "cultivated-scope-within-taxon" },
+              "scientificName": { "type": "string", "minLength": 1 },
+              "sourceIdentifier": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "taxonomic_source_usage" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "relation",
+              "scientificName",
+              "recordId",
+              "acceptedRecordId"
+            ],
+            "properties": {
+              "relation": { "const": "source-treatment-for-scope" },
+              "scientificName": { "type": "string", "minLength": 1 },
+              "recordId": { "type": "string", "minLength": 1 },
+              "acceptedRecordId": { "type": "string", "minLength": 1 },
+              "rank": { "type": "string", "minLength": 1 },
+              "acceptedName": { "type": "string", "minLength": 1 },
+              "sourceVernacular": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "watering_guidance" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": { "$ref": "urn:hortinis:plants:schema:v1:watering-guidance" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "temperature_guidance" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "$ref": "urn:hortinis:plants:schema:v1:temperature-guidance"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "establishment_guidance" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "$ref": "urn:hortinis:plants:schema:v1:establishment-guidance"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "harvest_guidance" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": { "$ref": "urn:hortinis:plants:schema:v1:harvest-guidance" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "care_guidance" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": { "$ref": "urn:hortinis:plants:schema:v1:care-guidance" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "nutrition_guidance" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "$ref": "urn:hortinis:plants:schema:v1:nutrition-guidance"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "pollination_guidance" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "$ref": "urn:hortinis:plants:schema:v1:pollination-guidance"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "rotation_classification" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "$ref": "urn:hortinis:plants:schema:v1:rotation-classification"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "site_guidance" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": { "$ref": "urn:hortinis:plants:schema:v1:site-guidance" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "growing_temperature" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "$ref": "urn:hortinis:plants:schema:v1:temperature-profile"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "germination_profile" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "$ref": "urn:hortinis:plants:schema:v1:germination-profile"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "cultivation_window" } },
+        "required": ["predicate"],
+        "not": {
+          "properties": {
+            "value": {
+              "type": "object",
+              "properties": { "mappingMethod": { "const": "local-inference" } },
+              "required": ["mappingMethod"]
+            }
+          },
+          "required": ["value"]
+        }
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "action",
+              "timing",
+              "sourceAction",
+              "sourceTiming",
+              "mappingMethod"
+            ],
+            "properties": {
+              "action": {
+                "$ref": "urn:hortinis:plants:schema:v1:cultivation-rule#/$defs/action"
+              },
+              "timing": {
+                "$ref": "urn:hortinis:plants:schema:v1:cultivation-rule#/$defs/timing",
+                "not": {
+                  "$ref": "urn:hortinis:plants:schema:v1:cultivation-rule#/$defs/conditionalSeason"
+                }
+              },
+              "sourceAction": { "type": "string", "minLength": 1 },
+              "sourceTiming": {
+                "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/jsonValue"
+              },
+              "mappingMethod": {
+                "enum": [
+                  "identity",
+                  "combined-action-preserved",
+                  "normalized-source-timing"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "predicate": {
+            "enum": ["sowing_window", "transplant_window", "harvest_window"]
+          }
+        },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "oneOf": [
+              {
+                "$ref": "urn:hortinis:plants:schema:v1:cultivation-rule#/$defs/calendarMonthWindow"
+              },
+              {
+                "$ref": "urn:hortinis:plants:schema:v1:cultivation-rule#/$defs/calendarDateWindow"
+              },
+              {
+                "$ref": "urn:hortinis:plants:schema:v1:cultivation-rule#/$defs/relativeDayWindow"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "predicate": { "const": "growing_degree_days" } },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "$ref": "urn:hortinis:plants:schema:v1:cultivation-rule#/$defs/growingDegreeDayThreshold"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "predicate": { "const": "cultivation_window" },
+          "value": {
+            "type": "object",
+            "properties": { "mappingMethod": { "const": "local-inference" } },
+            "required": ["mappingMethod"]
+          }
+        },
+        "required": ["predicate", "value"]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "action",
+              "timing",
+              "mappingMethod",
+              "proposalId",
+              "method"
+            ],
+            "properties": {
+              "action": {
+                "$ref": "urn:hortinis:plants:schema:v1:cultivation-rule#/$defs/action"
+              },
+              "timing": {
+                "$ref": "urn:hortinis:plants:schema:v1:cultivation-rule#/$defs/conditionalSeason"
+              },
+              "mappingMethod": { "const": "local-inference" },
+              "proposalId": {
+                "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+              },
+              "method": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

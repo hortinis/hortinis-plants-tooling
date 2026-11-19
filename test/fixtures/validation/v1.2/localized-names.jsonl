@@ -1,0 +1,4 @@
+{"id":"name_tomato_fr","subject":{"type":"plant-concept","id":"plant_tomato"},"languageTag":"fr","value":"tomate","kind":"common","preferred":true,"evidenceReferenceIds":["evidence_tomato_name"]}
+{"id":"name_tomato_en","subject":{"type":"plant-concept","id":"plant_tomato"},"languageTag":"en","value":"tomato","kind":"common","preferred":true,"evidenceReferenceIds":["evidence_tomato_name"]}
+{"id":"name_lettuce_fr","subject":{"type":"plant-concept","id":"plant_lettuce"},"languageTag":"fr","value":"laitue","kind":"common","preferred":true,"evidenceReferenceIds":["evidence_lettuce_name"]}
+{"id":"name_lettuce_en","subject":{"type":"plant-concept","id":"plant_lettuce"},"languageTag":"en","value":"lettuce","kind":"common","preferred":true,"evidenceReferenceIds":["evidence_lettuce_name"]}

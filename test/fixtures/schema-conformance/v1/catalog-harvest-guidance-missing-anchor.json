@@ -1,0 +1,13 @@
+{
+  "operation": "harvest-timing",
+  "part": "tuber",
+  "guidance": "Allow the skin to set before lifting.",
+  "timing": [
+    {
+      "role": "time-to-harvest",
+      "end": "harvest",
+      "duration": { "unit": "wk", "minimum": 2, "maximum": 2 },
+      "qualifier": "approximate"
+    }
+  ]
+}

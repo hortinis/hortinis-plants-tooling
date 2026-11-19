@@ -1,0 +1,18 @@
+{
+  "evaluation": "observation-dependent",
+  "applicabilityPath": ["Floricane-fruiting blackberry"],
+  "groups": [
+    {
+      "relationship": "independent",
+      "actions": [
+        {
+          "action": "remove-spent",
+          "target": "fruited previous-season canes",
+          "strength": "recommended",
+          "cutPosition": "At ground level",
+          "allOfTiming": [{ "kind": "after", "anchor": "harvest ends" }]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "evaluation": "observation-dependent",
+  "series": [
+    {
+      "steps": [
+        {
+          "action": "germinate",
+          "material": "seed",
+          "temperature": {
+            "medium": "soil",
+            "role": "reported-germination",
+            "quantity": { "amount": 20, "unit": "Cel" }
+          },
+          "germinationDuration": { "minimum": 6, "maximum": 10, "unit": "d" }
+        }
+      ]
+    }
+  ]
+}

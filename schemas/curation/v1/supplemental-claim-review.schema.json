@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:curation:v1:supplemental-claim-review",
+  "title": "Reviewed supplemental cultivation claims pending catalog admission",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "status",
+    "catalogAdmission",
+    "subject",
+    "capture",
+    "source",
+    "licence",
+    "sourceManifest",
+    "reviews",
+    "evidence",
+    "claims"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "id": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "status": {
+      "const": "validated"
+    },
+    "catalogAdmission": {
+      "const": "planned"
+    },
+    "subject": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/subjectReference"
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "observedAt", "originalDocumentsArchived", "notes"],
+      "properties": {
+        "kind": {
+          "const": "curator-review-extracts"
+        },
+        "observedAt": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "originalDocumentsArchived": {
+          "const": false
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "source": {
+      "$ref": "urn:hortinis:plants:schema:v1:source"
+    },
+    "licence": {
+      "$ref": "urn:hortinis:plants:schema:v1:licence"
+    },
+    "sourceManifest": {
+      "$ref": "urn:hortinis:plants:schema:v1:source-manifest"
+    },
+    "reviews": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "urn:hortinis:plants:schema:v1:review"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "urn:hortinis:plants:schema:v1:evidence-reference"
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "predicate",
+          "value",
+          "context",
+          "evidenceReferenceIds",
+          "reviewId"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+          },
+          "predicate": {
+            "enum": ["hardiness_rating", "preferred_planting_out_conditions"]
+          },
+          "value": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/jsonValue"
+          },
+          "context": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["geographicScope"],
+            "properties": {
+              "geographicScope": {
+                "type": "string",
+                "minLength": 1
+              },
+              "growingSystem": {
+                "const": "outdoor"
+              },
+              "propagation": {
+                "const": "transplant"
+              }
+            }
+          },
+          "evidenceReferenceIds": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/identifierList"
+          },
+          "reviewId": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "predicate": {
+                  "const": "hardiness_rating"
+                }
+              },
+              "required": ["predicate"]
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "$ref": "#/$defs/hardiness"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "predicate": {
+                  "const": "preferred_planting_out_conditions"
+                }
+              },
+              "required": ["predicate"]
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "$ref": "#/$defs/plantingPreference"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "temperatureCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["comparison", "threshold", "unit"],
+      "properties": {
+        "comparison": {
+          "const": ">"
+        },
+        "threshold": {
+          "type": "number"
+        },
+        "unit": {
+          "const": "Cel"
+        }
+      }
+    },
+    "hardiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system",
+        "rating",
+        "minimumTemperatureBand",
+        "bandMeaning",
+        "cultivationCategory",
+        "outdoorSeason",
+        "qualification"
+      ],
+      "properties": {
+        "system": {
+          "const": "RHS"
+        },
+        "rating": {
+          "type": "string",
+          "pattern": "^H1[ABC]$"
+        },
+        "minimumTemperatureBand": {
+          "$ref": "urn:hortinis:plants:schema:v1:temperature-profile"
+        },
+        "bandMeaning": {
+          "const": "absolute-minimum-winter-temperature-classification"
+        },
+        "cultivationCategory": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outdoorSeason": {
+          "const": "summer"
+        },
+        "qualification": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "plantingPreference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recommendation",
+        "nightTemperature",
+        "preconditions",
+        "sourceContext",
+        "qualification"
+      ],
+      "properties": {
+        "recommendation": {
+          "const": "preferred"
+        },
+        "nightTemperature": {
+          "$ref": "#/$defs/temperatureCondition"
+        },
+        "preconditions": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["hardened_off", "frost_risk_passed"]
+          }
+        },
+        "sourceContext": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["generalTenderPlantGuidance"],
+          "properties": {
+            "generalTenderPlantGuidance": {
+              "$ref": "#/$defs/temperatureCondition"
+            }
+          }
+        },
+        "qualification": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

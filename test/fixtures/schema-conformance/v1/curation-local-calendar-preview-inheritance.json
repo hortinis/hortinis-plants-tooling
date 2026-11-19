@@ -1,0 +1,21 @@
+{
+  "id": "local-window",
+  "subject": {
+    "type": "plant-concept",
+    "id": "garden-pea"
+  },
+  "contextId": "saint-etienne-outdoors",
+  "communeCode": "42218",
+  "action": "direct_sow",
+  "season": "spring-to-early-summer",
+  "requirements": ["workable", "sunny-sheltered", "season-remaining"],
+  "threshold": {
+    "medium": "soil",
+    "operator": "at-least",
+    "value": 10,
+    "unit": "Cel"
+  },
+  "inheritance": "inherit-parent",
+  "status": "in progress",
+  "commercialRelease": "blocked"
+}

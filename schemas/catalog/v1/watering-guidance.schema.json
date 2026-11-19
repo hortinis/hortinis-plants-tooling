@@ -1,0 +1,291 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:watering-guidance",
+  "title": "Source-specific watering guidance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["steps"],
+  "properties": {
+    "steps": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/step" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "applicability": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+    },
+    "applicabilityPath": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/text" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "sourceSetting": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+    },
+    "qualifications": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "dependentRequired": { "applicabilityPath": ["applicability"] },
+  "$defs": {
+    "text": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "guidance"],
+      "properties": {
+        "role": {
+          "enum": [
+            "irrigation",
+            "moisture-target",
+            "water-supply",
+            "water-source",
+            "risk-observation"
+          ]
+        },
+        "guidance": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+        },
+        "stage": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+        },
+        "allOfConditions": {
+          "type": "array",
+          "items": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "anyOfConditions": {
+          "type": "array",
+          "items": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "observationTrigger": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+        },
+        "waterAccounting": {
+          "enum": ["irrigation-only", "includes-rainfall", "unspecified"]
+        },
+        "sourceAmounts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/amount" },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "amountTiming": { "$ref": "#/$defs/amountTiming" },
+        "interval": { "$ref": "#/$defs/interval" }
+      },
+      "dependentRequired": {
+        "sourceAmounts": ["waterAccounting", "amountTiming"],
+        "amountTiming": ["sourceAmounts"],
+        "waterAccounting": ["sourceAmounts"]
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["sourceAmounts"],
+            "properties": { "sourceAmounts": true }
+          },
+          "then": {
+            "properties": { "role": { "enum": ["irrigation", "water-supply"] } }
+          }
+        },
+        {
+          "if": {
+            "required": ["sourceAmounts"],
+            "properties": {
+              "waterAccounting": { "const": "irrigation-only" },
+              "sourceAmounts": true
+            }
+          },
+          "then": { "properties": { "role": { "const": "irrigation" } } }
+        },
+        {
+          "if": {
+            "required": ["sourceAmounts"],
+            "properties": {
+              "waterAccounting": { "const": "includes-rainfall" },
+              "sourceAmounts": true
+            }
+          },
+          "then": { "properties": { "role": { "const": "water-supply" } } }
+        },
+        {
+          "if": {
+            "required": ["interval"],
+            "properties": { "interval": true }
+          },
+          "then": { "properties": { "role": { "const": "irrigation" } } }
+        }
+      ]
+    },
+    "amount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dimension", "unit", "qualifier"],
+      "properties": {
+        "dimension": {
+          "enum": [
+            "depth-over-area",
+            "volume-per-plant",
+            "volume-per-container"
+          ]
+        },
+        "unit": { "enum": ["mm", "cm", "[in_i]", "L", "mL"] },
+        "qualifier": {
+          "enum": [
+            "stated",
+            "approximate",
+            "up-to",
+            "average",
+            "as-printed-inconsistent"
+          ]
+        },
+        "value": { "type": "number", "exclusiveMinimum": 0 },
+        "minimum": { "type": "number", "exclusiveMinimum": 0 },
+        "maximum": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "oneOf": [
+        {
+          "required": ["value"],
+          "not": {
+            "anyOf": [
+              { "required": ["minimum"], "properties": { "minimum": true } },
+              { "required": ["maximum"], "properties": { "maximum": true } }
+            ]
+          },
+          "properties": { "value": true }
+        },
+        {
+          "required": ["minimum", "maximum"],
+          "not": { "required": ["value"], "properties": { "value": true } },
+          "properties": { "minimum": true, "maximum": true }
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "dimension": { "const": "depth-over-area" } }
+          },
+          "then": {
+            "properties": { "unit": { "enum": ["mm", "cm", "[in_i]"] } }
+          },
+          "else": { "properties": { "unit": { "enum": ["L", "mL"] } } }
+        }
+      ]
+    },
+    "amountTiming": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "event"],
+          "properties": {
+            "kind": { "const": "per-application" },
+            "event": {
+              "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "period"],
+          "properties": {
+            "kind": { "enum": ["period-total", "per-reported-interval"] },
+            "period": { "$ref": "#/$defs/duration" }
+          }
+        }
+      ]
+    },
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "unit"],
+      "properties": {
+        "kind": { "enum": ["every", "times-per-period"] },
+        "unit": { "enum": ["d", "wk"] },
+        "value": { "type": "integer", "minimum": 1 },
+        "minimum": { "type": "integer", "minimum": 1 },
+        "maximum": { "type": "integer", "minimum": 1 }
+      },
+      "oneOf": [
+        {
+          "required": ["value"],
+          "not": {
+            "anyOf": [
+              { "required": ["minimum"], "properties": { "minimum": true } },
+              { "required": ["maximum"], "properties": { "maximum": true } }
+            ]
+          },
+          "properties": { "value": true }
+        },
+        {
+          "required": ["minimum", "maximum"],
+          "not": { "required": ["value"], "properties": { "value": true } },
+          "properties": { "minimum": true, "maximum": true }
+        }
+      ]
+    },
+    "duration": {
+      "allOf": [
+        {
+          "anyOf": [
+            { "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/quantity" },
+            {
+              "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/quantityRange"
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["unit"],
+          "properties": {
+            "unit": { "enum": ["d", "wk"] },
+            "value": { "type": "integer", "minimum": 1 },
+            "minimum": { "type": "integer", "minimum": 1 },
+            "maximum": { "type": "integer", "minimum": 1 }
+          }
+        },
+        {
+          "oneOf": [
+            {
+              "required": ["value"],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": ["minimum"],
+                    "properties": { "minimum": true }
+                  },
+                  { "required": ["maximum"], "properties": { "maximum": true } }
+                ]
+              },
+              "properties": { "value": true }
+            },
+            {
+              "required": ["minimum", "maximum"],
+              "not": { "required": ["value"], "properties": { "value": true } },
+              "properties": { "minimum": true, "maximum": true }
+            }
+          ]
+        }
+      ],
+      "type": "object"
+    }
+  }
+}

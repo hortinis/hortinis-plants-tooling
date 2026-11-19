@@ -1,0 +1,401 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:establishment-guidance",
+  "title": "Source-specific planting and establishment guidance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["series", "evaluation"],
+  "properties": {
+    "series": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["steps"],
+        "properties": {
+          "steps": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/step" }
+          }
+        }
+      }
+    },
+    "applicabilityPath": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+      }
+    },
+    "sourceSetting": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+    },
+    "evaluation": { "const": "observation-dependent" },
+    "qualifications": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+      }
+    },
+    "seriesRelationship": {
+      "enum": ["alternatives", "independent-observations"]
+    }
+  },
+  "$defs": {
+    "quantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit"],
+      "properties": {
+        "minimum": { "type": "number" },
+        "maximum": { "type": "number" },
+        "amount": { "type": "number" },
+        "unit": {
+          "enum": [
+            "cm",
+            "m",
+            "in",
+            "ft",
+            "bulb-height",
+            "d",
+            "wk",
+            "Cel",
+            "[degF]",
+            "seed",
+            "plant/ha"
+          ]
+        },
+        "approximate": { "type": "boolean" }
+      },
+      "oneOf": [
+        {
+          "required": ["amount"],
+          "properties": { "amount": true, "minimum": false, "maximum": false },
+          "type": "object"
+        },
+        {
+          "required": ["minimum", "maximum"],
+          "properties": { "minimum": true, "maximum": true, "amount": false },
+          "type": "object"
+        }
+      ]
+    },
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "quantity"],
+      "properties": {
+        "role": {
+          "enum": [
+            "sowing-depth",
+            "planting-depth",
+            "within-row",
+            "between-row",
+            "thinning-distance",
+            "final-spacing",
+            "group-spacing",
+            "seeds-per-group",
+            "planting-density",
+            "seedling-height"
+          ]
+        },
+        "quantity": {
+          "$ref": "#/$defs/quantity",
+          "type": "object",
+          "properties": {
+            "unit": {
+              "enum": ["cm", "m", "in", "ft", "bulb-height", "seed", "plant/ha"]
+            }
+          }
+        },
+        "limit": { "enum": ["minimum", "maximum"] },
+        "reference": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+        }
+      }
+    },
+    "temperature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["medium", "role", "quantity"],
+      "properties": {
+        "medium": { "enum": ["soil", "substrate", "air", "unspecified"] },
+        "role": {
+          "enum": [
+            "strict-minimum",
+            "minimum",
+            "preferred-range",
+            "optimum",
+            "reported-germination",
+            "good-germination",
+            "decay-risk"
+          ]
+        },
+        "quantity": {
+          "$ref": "#/$defs/quantity",
+          "type": "object",
+          "properties": { "unit": { "enum": ["Cel", "[degF]"] } }
+        },
+        "measurementDepth": {
+          "$ref": "#/$defs/quantity",
+          "type": "object",
+          "properties": { "unit": { "enum": ["cm", "m", "in", "ft"] } }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "role": { "enum": ["minimum", "strict-minimum", "decay-risk"] }
+            }
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "quantity": {
+                "type": "object",
+                "properties": { "amount": true },
+                "required": ["amount"]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "before",
+            "after",
+            "elapsed-from",
+            "succession",
+            "season",
+            "calendar-months"
+          ]
+        },
+        "anchor": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+        },
+        "interval": {
+          "$ref": "#/$defs/quantity",
+          "type": "object",
+          "properties": { "unit": { "enum": ["d", "wk"] } }
+        },
+        "cue": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+        },
+        "months": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "integer", "minimum": 1, "maximum": 12 },
+          "uniqueItems": true
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": { "enum": ["before", "after", "elapsed-from"] }
+            },
+            "type": "object"
+          },
+          "then": {
+            "required": ["anchor"],
+            "properties": { "anchor": true },
+            "type": "object"
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "elapsed-from" } },
+            "type": "object"
+          },
+          "then": {
+            "required": ["interval"],
+            "properties": { "interval": true },
+            "type": "object"
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "calendar-months" } },
+            "type": "object"
+          },
+          "then": {
+            "required": ["months"],
+            "properties": { "months": true },
+            "type": "object"
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "season" } },
+            "type": "object"
+          },
+          "then": {
+            "required": ["cue"],
+            "properties": { "cue": true },
+            "type": "object"
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "succession" } },
+            "type": "object"
+          },
+          "then": {
+            "anyOf": [
+              {
+                "required": ["cue"],
+                "properties": { "cue": true },
+                "type": "object"
+              },
+              {
+                "required": ["interval"],
+                "properties": { "interval": true },
+                "type": "object"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "material"],
+      "properties": {
+        "action": {
+          "enum": [
+            "select-stock",
+            "direct-sow",
+            "sow-for-transplant",
+            "sow",
+            "transplant",
+            "plant-out",
+            "plant-bulb",
+            "plant-tuber",
+            "plant-clove",
+            "plant-set",
+            "plant-stock",
+            "plant-slip",
+            "divide",
+            "take-cuttings",
+            "harden",
+            "pre-sprout",
+            "thin",
+            "germinate",
+            "establish",
+            "water-in",
+            "prepare-stock"
+          ]
+        },
+        "material": {
+          "enum": [
+            "seed",
+            "fresh-seed",
+            "seedling",
+            "rooted-plug",
+            "rooted-plant",
+            "grafted-tree",
+            "bare-root-tree",
+            "container-tree",
+            "bulb",
+            "tuber",
+            "clove",
+            "set",
+            "slip",
+            "cutting",
+            "divided-plant",
+            "crown",
+            "unspecified",
+            "pumpkin-seed",
+            "tuber-piece"
+          ]
+        },
+        "setting": {
+          "enum": [
+            "indoor",
+            "outdoor",
+            "greenhouse",
+            "heated-greenhouse",
+            "unheated-cover",
+            "unspecified"
+          ]
+        },
+        "guidance": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+        },
+        "timing": { "$ref": "#/$defs/timing" },
+        "dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/dimension" }
+        },
+        "temperature": { "$ref": "#/$defs/temperature" },
+        "germinationDuration": { "$ref": "#/$defs/quantity" },
+        "allOfConditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+          }
+        },
+        "layout": { "enum": ["rows", "clumps", "ridges", "block"] },
+        "notes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["germinationDuration"],
+            "properties": { "germinationDuration": true },
+            "type": "object"
+          },
+          "then": {
+            "required": ["temperature"],
+            "properties": {
+              "action": { "const": "germinate" },
+              "germinationDuration": {
+                "properties": { "unit": { "const": "d" } },
+                "type": "object"
+              },
+              "temperature": true
+            },
+            "type": "object"
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "properties": { "series": { "type": "array", "minItems": 2 } }
+      },
+      "then": {
+        "type": "object",
+        "properties": { "seriesRelationship": true },
+        "required": ["seriesRelationship"]
+      },
+      "else": {
+        "type": "object",
+        "properties": { "seriesRelationship": false }
+      }
+    }
+  ]
+}

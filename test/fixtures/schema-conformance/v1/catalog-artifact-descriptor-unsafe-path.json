@@ -1,0 +1,8 @@
+{
+  "path": "../metadata/licences.json",
+  "kind": "json-document",
+  "mediaType": "application/json",
+  "role": "licences",
+  "byteSize": 128,
+  "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+}

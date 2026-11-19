@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "",
+  "reviewState": "unreviewed",
+  "inputs": [
+    {
+      "role": "fixture-input",
+      "locator": "fixture://input",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "byteSize": 0
+    }
+  ],
+  "scopes": [],
+  "queues": [],
+  "packets": [],
+  "outputs": [],
+  "counts": []
+}

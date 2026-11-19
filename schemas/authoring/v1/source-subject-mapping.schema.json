@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:authoring:v1:source-subject-mapping",
+  "title": "Reviewed source record to catalog subject mapping",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "sourceRecordKey",
+    "sourceLocator",
+    "decision",
+    "reason",
+    "reviewId"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "sourceRecordKey": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/qualifiedSourceRecordKey"
+    },
+    "sourceLocator": { "type": "string", "minLength": 1 },
+    "decision": { "enum": ["map", "reject", "defer"] },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": { "enum": ["plant-concept", "cultivar-group", "cultivar"] },
+        "id": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+        }
+      }
+    },
+    "externalTaxonomyCrosswalkId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "reason": { "type": "string", "minLength": 1 },
+    "reviewId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "supersedesMappingId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "decision": { "const": "map" } },
+        "required": ["decision"]
+      },
+      "then": {
+        "required": ["subject"],
+        "properties": { "subject": true }
+      },
+      "else": {
+        "required": ["reason"],
+        "properties": {
+          "reason": true,
+          "subject": false,
+          "externalTaxonomyCrosswalkId": false
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:plant-concept",
+  "title": "Hortinis catalog plant concept",
+  "type": "object",
+  "required": ["id", "status", "evidenceReferenceIds"],
+  "properties": {
+    "id": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "status": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/catalogStatus"
+    },
+    "taxonId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "kind": {
+      "enum": [
+        "generic",
+        "growing-type",
+        "crop-use-group",
+        "production-scope",
+        "supplier-accession"
+      ]
+    },
+    "supplierAccession": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supplier", "label"],
+      "properties": {
+        "supplier": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "supplierRecord": { "type": "string", "minLength": 1 }
+      }
+    },
+    "parentPlantConceptId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "replacementPlantConceptId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "evidenceReferenceIds": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/identifierList"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["kind"],
+        "properties": { "kind": { "const": "supplier-accession" } }
+      },
+      "then": {
+        "required": ["supplierAccession"],
+        "properties": { "supplierAccession": true }
+      },
+      "else": { "properties": { "supplierAccession": false } }
+    },
+    {
+      "if": {
+        "required": ["kind"],
+        "properties": {
+          "kind": { "enum": ["crop-use-group", "production-scope"] }
+        }
+      },
+      "then": { "properties": { "taxonId": false } }
+    }
+  ],
+  "if": {
+    "required": ["kind"],
+    "properties": { "kind": { "const": "growing-type" } }
+  },
+  "then": {
+    "required": ["parentPlantConceptId"],
+    "properties": { "parentPlantConceptId": true }
+  },
+  "else": { "properties": { "parentPlantConceptId": false } }
+}

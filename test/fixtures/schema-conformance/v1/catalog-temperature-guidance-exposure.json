@@ -1,0 +1,21 @@
+{
+  "evaluation": "observation-dependent",
+  "observations": [
+    {
+      "role": "survival",
+      "medium": "unspecified",
+      "timeBasis": "sustained",
+      "part": "unopened flower buds",
+      "stage": "budding",
+      "guidance": "The source reports survival during short frost exposure.",
+      "quantity": { "amount": -1, "unit": "Cel" },
+      "comparison": "reported",
+      "duration": {
+        "kind": "exposure",
+        "comparison": "less-than",
+        "amount": 30,
+        "unit": "min"
+      }
+    }
+  ]
+}

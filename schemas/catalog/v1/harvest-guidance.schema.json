@@ -1,0 +1,280 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:harvest-guidance",
+  "title": "Source-specific harvest and postharvest guidance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operation", "part", "guidance"],
+  "properties": {
+    "operation": {
+      "enum": [
+        "harvest",
+        "harvest-timing",
+        "harvest-check",
+        "maturity-class",
+        "quality-observation",
+        "curing",
+        "surface-drying",
+        "ripening",
+        "fresh-storage",
+        "overwintering",
+        "storage-rating"
+      ]
+    },
+    "part": {
+      "enum": [
+        "fruit",
+        "root",
+        "pod",
+        "bulb",
+        "tuber",
+        "leaf",
+        "leaf-stalk",
+        "flower",
+        "head",
+        "nut",
+        "cob",
+        "cluster",
+        "chicon",
+        "swollen-stem"
+      ]
+    },
+    "guidance": { "$ref": "#/$defs/text" },
+    "stage": {
+      "enum": [
+        "young",
+        "immature",
+        "mature",
+        "mature-green",
+        "ripe",
+        "fully-open",
+        "postharvest",
+        "dormant"
+      ]
+    },
+    "minimumSheetSpacing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["amount", "unit"],
+      "properties": {
+        "amount": { "type": "number", "exclusiveMinimum": 0 },
+        "unit": { "const": "cm" }
+      }
+    },
+    "purpose": { "$ref": "#/$defs/text" },
+    "applicability": { "$ref": "#/$defs/text" },
+    "allOfConditions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/text" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "preparation": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/text" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "cues": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/text" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "timing": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/timing" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "diameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit"],
+      "properties": {
+        "unit": { "enum": ["cm", "[in_i]"] },
+        "minimum": { "type": "number", "exclusiveMinimum": 0 },
+        "maximum": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "minProperties": 2
+    },
+    "diameterQualifier": {
+      "enum": [
+        "preferred-range",
+        "upper-limit",
+        "target-or-smaller",
+        "approximate-target"
+      ]
+    },
+    "temperature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit"],
+      "properties": {
+        "unit": { "enum": ["Cel", "[degF]"] },
+        "minimum": { "type": "number" },
+        "maximum": { "type": "number" }
+      },
+      "minProperties": 2
+    },
+    "temperatureQualifier": { "enum": ["approximate", "optimum"] },
+    "relativeHumidity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit"],
+      "properties": {
+        "unit": { "enum": ["%"] },
+        "minimum": { "type": "number", "minimum": 0, "maximum": 100 },
+        "maximum": { "type": "number", "minimum": 0, "maximum": 100 }
+      },
+      "minProperties": 2
+    },
+    "spacing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit"],
+      "properties": {
+        "unit": { "enum": ["cm"] },
+        "minimum": { "type": "number", "exclusiveMinimum": 0 },
+        "maximum": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "minProperties": 2
+    },
+    "rating": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "scheme"],
+      "properties": {
+        "label": { "$ref": "#/$defs/text" },
+        "score": { "type": "integer" },
+        "scheme": { "$ref": "#/$defs/text" }
+      }
+    },
+    "sourceSetting": { "$ref": "#/$defs/text" }
+  },
+  "dependentRequired": {
+    "diameter": ["diameterQualifier"],
+    "diameterQualifier": ["diameter"],
+    "temperatureQualifier": ["temperature"]
+  },
+  "$defs": {
+    "text": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "start", "end", "duration"],
+      "properties": {
+        "role": {
+          "enum": [
+            "time-to-harvest",
+            "time-to-maturity",
+            "check-interval",
+            "postharvest-treatment",
+            "best-quality-window",
+            "harvest-frequency"
+          ]
+        },
+        "start": {
+          "enum": [
+            "sowing",
+            "seeding",
+            "germination",
+            "transplanting",
+            "planting-sets",
+            "planting-tubers",
+            "flowering",
+            "end-of-flowering",
+            "pollination",
+            "harvest",
+            "top-removal",
+            "start-of-forcing",
+            "unknown"
+          ]
+        },
+        "end": {
+          "enum": [
+            "harvest",
+            "maturity",
+            "next-check",
+            "treatment-complete",
+            "best-use",
+            "next-harvest"
+          ]
+        },
+        "duration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["unit"],
+          "properties": {
+            "unit": { "enum": ["h", "d", "wk", "mo"] },
+            "minimum": { "type": "number", "exclusiveMinimum": 0 },
+            "maximum": { "type": "number", "exclusiveMinimum": 0 }
+          },
+          "minProperties": 2
+        },
+        "qualifier": { "enum": ["estimate", "approximate", "as-little-as"] },
+        "condition": { "$ref": "#/$defs/text" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "role": { "const": "time-to-harvest" } } },
+          "then": { "properties": { "end": { "const": "harvest" } } }
+        },
+        {
+          "if": { "properties": { "role": { "const": "time-to-maturity" } } },
+          "then": { "properties": { "end": { "const": "maturity" } } }
+        },
+        {
+          "if": { "properties": { "role": { "const": "check-interval" } } },
+          "then": {
+            "properties": {
+              "end": { "const": "next-check" },
+              "start": { "const": "unknown" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "role": { "const": "postharvest-treatment" } }
+          },
+          "then": { "properties": { "end": { "const": "treatment-complete" } } }
+        },
+        {
+          "if": {
+            "properties": { "role": { "const": "best-quality-window" } }
+          },
+          "then": { "properties": { "end": { "const": "best-use" } } }
+        },
+        {
+          "if": { "properties": { "role": { "const": "harvest-frequency" } } },
+          "then": {
+            "properties": {
+              "start": { "const": "unknown" },
+              "end": { "const": "next-harvest" }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": { "enum": ["harvest-timing", "harvest-check"] }
+        }
+      },
+      "then": { "required": ["timing"], "properties": { "timing": {} } }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": { "enum": ["maturity-class", "storage-rating"] }
+        }
+      },
+      "then": { "required": ["rating"], "properties": { "rating": {} } }
+    }
+  ]
+}

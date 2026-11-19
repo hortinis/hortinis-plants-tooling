@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "1.0.0",
+  "policyVersion": "1.0.0",
+  "id": "pr_12345678-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  "revision": 1,
+  "status": "in progress",
+  "researchComplete": false,
+  "curatorApproval": "accepted",
+  "catalogIntegration": "planned",
+  "createdAt": "2026-10-07",
+  "baseline": {
+    "commit": "fixture-baseline",
+    "dirty": false,
+    "notes": "Synthetic draft fixture."
+  },
+  "plant": {
+    "label": "Fixture plant",
+    "scientificName": null,
+    "catalogSubjectId": null,
+    "targetGeography": "France",
+    "scopeNotes": "One generic subject."
+  },
+  "scopes": [
+    {
+      "id": "ps_12345678-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "label": "Fixture plant",
+      "kind": "generic",
+      "catalogSubjectId": null,
+      "parentScopeId": null
+    }
+  ],
+  "evidence": [],
+  "claims": [],
+  "sourceCandidateDispositions": [],
+  "coverage": [
+    {
+      "domain": "identity",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research pending."
+    },
+    {
+      "domain": "temperature",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research pending."
+    },
+    {
+      "domain": "planting",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research pending."
+    },
+    {
+      "domain": "environment",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research pending."
+    },
+    {
+      "domain": "water",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research pending."
+    },
+    {
+      "domain": "nutrition",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research pending."
+    },
+    {
+      "domain": "harvest",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research pending."
+    },
+    {
+      "domain": "care",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research pending."
+    }
+  ],
+  "questions": [],
+  "checks": []
+}

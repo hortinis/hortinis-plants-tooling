@@ -1,0 +1,166 @@
+{
+  "schemaVersion": "1.0.0",
+  "datasetVersion": "0.1.0",
+  "id": "curation_fixture",
+  "status": "in progress",
+  "scope": "Curation manifest schema fixture.",
+  "collections": [
+    {
+      "role": "taxa",
+      "path": "taxa.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:v1:taxon",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "taxonomic-names",
+      "path": "taxonomic-names.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:v1:taxonomic-name",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "plant-concepts",
+      "path": "plant-concepts.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:v1:plant-concept",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "cultivar-groups",
+      "path": "cultivar-groups.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:v1:cultivar-group",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "cultivars",
+      "path": "cultivars.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:v1:cultivar",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "localized-names",
+      "path": "localized-names.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:v1:localized-name",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "geographic-contexts",
+      "path": "geographic-contexts.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:v1:geographic-context",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "cultivation-contexts",
+      "path": "cultivation-contexts.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:v1:cultivation-context",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "evidence-references",
+      "path": "evidence-references.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:v1:evidence-reference",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "reviews",
+      "path": "reviews.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:v1:review",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "external-taxonomy-crosswalks",
+      "path": "external-taxonomy-crosswalks.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:authoring:v1:external-taxonomy-crosswalk",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "source-name-decisions",
+      "path": "source-name-decisions.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:authoring:v1:source-name-decision",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "source-subject-mappings",
+      "path": "source-subject-mappings.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:authoring:v1:source-subject-mapping",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "source-geography-decisions",
+      "path": "source-geography-decisions.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:authoring:v1:source-geography-decision",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "source-assertion-decisions",
+      "path": "source-assertion-decisions.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:authoring:v1:source-assertion-decision",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "assertions",
+      "path": "assertions.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:authoring:v1:assertion",
+      "authority": "curator-authored"
+    },
+    {
+      "role": "curation-issues",
+      "path": "curation-issues.jsonl",
+      "format": "jsonl",
+      "schemaId": "urn:hortinis:plants:schema:authoring:v1:curation-issue",
+      "authority": "curator-authored"
+    }
+  ],
+  "dependencies": [
+    {
+      "role": "source-manifest",
+      "id": "source_manifest_grow_epd_2020",
+      "path": "data/sources/grow/source-manifest.json",
+      "format": "json",
+      "schemaId": "urn:hortinis:plants:schema:v1:source-manifest",
+      "sha256": "3cb800e515e8c0654a1f5d71a7725da4a29df91b47f11513ceb08a169de0df70",
+      "authority": "tracked-source-metadata"
+    },
+    {
+      "role": "source-manifest",
+      "id": "source_manifest_wfo_plant_list_2026_06",
+      "path": "data/sources/wfo/source-manifest.json",
+      "format": "json",
+      "schemaId": "urn:hortinis:plants:schema:v1:source-manifest",
+      "sha256": "84387d586405feff508678c4c69ebe95e1704d240af818a2dc7ee663f1ff3e08",
+      "authority": "tracked-source-metadata"
+    }
+  ],
+  "reviewBaseline": [
+    {
+      "role": "grow-importer-configuration",
+      "type": "configuration",
+      "sha256": "6d1ed7b4d1c2816e3ef1502637a8be7697ab672d9c2d654db18257d5bf1223c7"
+    },
+    {
+      "role": "wfo-reconciliation-configuration",
+      "type": "configuration",
+      "sha256": "63a591cec4657a91ac9a98bd95a0056a361b8cdf51caa0b60fe84c9594d5635a"
+    },
+    {
+      "role": "draft-manifest",
+      "type": "manifest",
+      "sha256": "70ea61f87b9b8ca0ca5e272f1e5a0d2fb3afb63bdd88b15994e10e781239ac1a"
+    }
+  ],
+  "reviewDraftCommand": "pnpm curate:grow-wfo:drafts"
+}

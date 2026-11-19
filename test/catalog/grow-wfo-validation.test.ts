@@ -1,0 +1,209 @@
+import { cp, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { dataRoot, toolingRoot } from "../../src/repository-paths.js";
+import { validateGrowWfoDataset } from "../../src/curation/grow-wfo-validation.js";
+import { getCompiledValidationApi } from "../support/compiled-validation-api.js";
+
+const repositoryRoot = dataRoot();
+const sourceDataset = join(
+  toolingRoot,
+  "test/fixtures/curation/initial-grow-wfo",
+);
+
+async function copyDataset(): Promise<string> {
+  const parent = await mkdtemp(join("/tmp", "hortinis-c4-validation-"));
+  const destination = join(parent, "dataset");
+  await cp(sourceDataset, destination, { recursive: true });
+  return destination;
+}
+
+async function readManifest(
+  directory: string,
+): Promise<Record<string, unknown>> {
+  return JSON.parse(
+    await readFile(join(directory, "dataset-manifest.json"), "utf8"),
+  ) as Record<string, unknown>;
+}
+
+describe("GROW/WFO manifest-driven validation", () => {
+  it("validates the tracked authoring dataset", async () => {
+    const result = await validateGrowWfoDataset({ repositoryRoot });
+    expect(result).toMatchObject({ valid: true, issues: [] });
+    const manifest = await readManifest(
+      join(repositoryRoot, "data/curation/grow-wfo-initial"),
+    );
+    const dependencies = manifest.dependencies as Array<
+      Record<string, unknown>
+    >;
+    expect(result.loaded?.dataset.sourceManifestIds).toEqual(
+      dependencies
+        .filter((dependency) => dependency.role === "source-manifest")
+        .map((dependency) => dependency.id)
+        .sort(),
+    );
+  });
+
+  it("rejects an unknown schema identifier and preserves deterministic diagnostics", async () => {
+    const directory = await copyDataset();
+    const manifest = await readManifest(directory);
+    const collections = manifest.collections as Array<Record<string, unknown>>;
+    collections[0] = {
+      ...collections[0],
+      schemaId: "urn:hortinis:plants:schema:unknown",
+    };
+    await writeFile(
+      join(directory, "dataset-manifest.json"),
+      `${JSON.stringify(manifest)}\n`,
+    );
+    const api = await getCompiledValidationApi();
+    const first = await validateGrowWfoDataset({
+      repositoryRoot,
+      datasetDirectory: directory,
+      validationApi: api,
+    });
+    const second = await validateGrowWfoDataset({
+      repositoryRoot,
+      datasetDirectory: directory,
+      validationApi: api,
+    });
+    expect(first.valid).toBe(false);
+    expect(first.issues).toEqual(second.issues);
+    expect(first.issues).toContainEqual(
+      expect.objectContaining({ code: "UNKNOWN_SCHEMA_ID" }),
+    );
+  });
+
+  it("reports strict JSONL errors with the collection path and line number", async () => {
+    const directory = await copyDataset();
+    await writeFile(
+      join(directory, "taxa.jsonl"),
+      '{"id":"taxon_a","id":"taxon_b"}\n',
+    );
+    const result = await validateGrowWfoDataset({
+      repositoryRoot,
+      datasetDirectory: directory,
+    });
+    expect(result.valid).toBe(false);
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({
+        code: "DUPLICATE_KEY",
+        path: "taxa.jsonl",
+        lineNumber: 1,
+      }),
+    );
+  });
+
+  it("detects a tracked dependency checksum change without loading authored records", async () => {
+    const directory = await copyDataset();
+    const manifest = await readManifest(directory);
+    const dependencies = manifest.dependencies as Array<
+      Record<string, unknown>
+    >;
+    dependencies[0] = { ...dependencies[0], sha256: "0".repeat(64) };
+    await writeFile(
+      join(directory, "dataset-manifest.json"),
+      `${JSON.stringify(manifest)}\n`,
+    );
+    const result = await validateGrowWfoDataset({
+      repositoryRoot,
+      datasetDirectory: directory,
+    });
+    expect(result.valid).toBe(false);
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({ code: "DEPENDENCY_CHECKSUM_MISMATCH" }),
+    );
+    expect(result.loaded).toBeUndefined();
+  });
+
+  it.each([
+    ["collection role", 0, "role", "DUPLICATE_COLLECTION_ROLE"],
+    ["collection path", 0, "path", "DUPLICATE_COLLECTION_PATH"],
+  ] as const)("rejects a duplicate %s", async (_label, index, field, code) => {
+    const directory = await copyDataset();
+    const manifest = await readManifest(directory);
+    const collections = manifest.collections as Array<Record<string, unknown>>;
+    collections[1] = {
+      ...collections[1],
+      [field]: collections[index]![field],
+    };
+    await writeFile(
+      join(directory, "dataset-manifest.json"),
+      `${JSON.stringify(manifest)}\n`,
+    );
+
+    const result = await validateGrowWfoDataset({
+      repositoryRoot,
+      datasetDirectory: directory,
+    });
+    expect(result.valid).toBe(false);
+    expect(result.issues).toContainEqual(expect.objectContaining({ code }));
+  });
+
+  it("rejects a duplicate dependency identifier", async () => {
+    const directory = await copyDataset();
+    const manifest = await readManifest(directory);
+    const dependencies = manifest.dependencies as Array<
+      Record<string, unknown>
+    >;
+    dependencies[1] = { ...dependencies[1], id: dependencies[0]!.id };
+    await writeFile(
+      join(directory, "dataset-manifest.json"),
+      `${JSON.stringify(manifest)}\n`,
+    );
+
+    const result = await validateGrowWfoDataset({
+      repositoryRoot,
+      datasetDirectory: directory,
+    });
+    expect(result.valid).toBe(false);
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({ code: "DUPLICATE_DEPENDENCY_ID" }),
+    );
+  });
+
+  it("rejects a duplicate review baseline role", async () => {
+    const directory = await copyDataset();
+    const manifest = await readManifest(directory);
+    const baselines = manifest.reviewBaseline as Array<Record<string, unknown>>;
+    baselines.push({ ...baselines[0]! });
+    await writeFile(
+      join(directory, "dataset-manifest.json"),
+      `${JSON.stringify(manifest)}\n`,
+    );
+
+    const result = await validateGrowWfoDataset({
+      repositoryRoot,
+      datasetDirectory: directory,
+    });
+    expect(result.valid).toBe(false);
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({ code: "DUPLICATE_BASELINE_ROLE" }),
+    );
+  });
+
+  it("loads an additional registered collection role", async () => {
+    const directory = await copyDataset();
+    const manifest = await readManifest(directory);
+    const collections = manifest.collections as Array<Record<string, unknown>>;
+    collections.push({
+      role: "plant-facts",
+      path: "plant-facts.jsonl",
+      format: "jsonl",
+      schemaId: "urn:hortinis:plants:schema:v1:plant-fact",
+      authority: "curator-authored",
+    });
+    await writeFile(join(directory, "plant-facts.jsonl"), "");
+    await writeFile(
+      join(directory, "dataset-manifest.json"),
+      `${JSON.stringify(manifest)}\n`,
+    );
+
+    const result = await validateGrowWfoDataset({
+      repositoryRoot,
+      datasetDirectory: directory,
+    });
+    expect(result).toMatchObject({ valid: true, issues: [] });
+    expect(result.loaded?.dataset.facts).toEqual([]);
+  });
+});

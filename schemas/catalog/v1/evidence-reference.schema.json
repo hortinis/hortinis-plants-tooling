@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:evidence-reference",
+  "title": "Hortinis catalog evidence reference",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "locator", "rights"],
+  "properties": {
+    "id": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "sourceRecordKey": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/qualifiedSourceRecordKey"
+    },
+    "sourceId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "sourceManifestId": {
+      "$ref": "urn:hortinis:plants:schema:v1:source-manifest#/$defs/sourceManifestId"
+    },
+    "sourceReleaseId": { "type": "string", "minLength": 1 },
+    "sourceRecordId": { "type": "string", "minLength": 1 },
+    "locator": { "type": "string", "minLength": 1 },
+    "normalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["originalValue"],
+      "properties": {
+        "originalValue": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/jsonValue"
+        },
+        "method": { "type": "string", "minLength": 1 },
+        "unit": { "type": "string", "minLength": 1 }
+      }
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["licenceId", "decision", "reason", "reviewId"],
+      "properties": {
+        "licenceId": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+        },
+        "decision": { "enum": ["eligible", "ineligible", "pending-review"] },
+        "reason": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+        },
+        "reviewId": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+        }
+      }
+    }
+  },
+  "anyOf": [
+    {
+      "required": ["sourceRecordKey"],
+      "properties": { "sourceRecordKey": true }
+    },
+    {
+      "required": [
+        "sourceId",
+        "sourceManifestId",
+        "sourceReleaseId",
+        "sourceRecordId"
+      ],
+      "properties": {
+        "sourceId": true,
+        "sourceManifestId": true,
+        "sourceReleaseId": true,
+        "sourceRecordId": true
+      }
+    }
+  ]
+}

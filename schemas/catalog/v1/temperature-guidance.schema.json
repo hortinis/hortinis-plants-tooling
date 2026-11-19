@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:temperature-guidance",
+  "title": "Source-specific temperature and frost guidance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["evaluation", "observations"],
+  "properties": {
+    "evaluation": { "const": "observation-dependent" },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "medium", "timeBasis", "guidance"],
+        "properties": {
+          "role": {
+            "enum": [
+              "source-classification",
+              "frost-sensitivity",
+              "cold-tolerance",
+              "survival",
+              "tissue-damage",
+              "heat-sensitivity",
+              "flower-damage",
+              "growth-preference",
+              "reported-growth-range",
+              "production-optimum",
+              "germination-optimum",
+              "reported-germination-range",
+              "development-effect",
+              "yield-effect",
+              "quality-effect",
+              "action",
+              "unspecified"
+            ]
+          },
+          "medium": {
+            "enum": ["air", "soil", "substrate", "water", "unspecified"]
+          },
+          "timeBasis": {
+            "enum": [
+              "daytime",
+              "nighttime",
+              "daily-minimum",
+              "instantaneous",
+              "sustained",
+              "unspecified"
+            ]
+          },
+          "quantity": {
+            "$ref": "urn:hortinis:plants:schema:v1:establishment-guidance#/$defs/quantity",
+            "type": "object",
+            "properties": { "unit": { "enum": ["Cel", "[degF]"] } }
+          },
+          "comparison": {
+            "enum": ["above", "below", "at-least", "at-most", "reported"]
+          },
+          "sourceClass": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["scheme", "label"],
+            "properties": {
+              "scheme": { "type": "string", "minLength": 1 },
+              "label": {
+                "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+              }
+            }
+          },
+          "stage": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+          },
+          "part": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+          },
+          "allOfConditions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+            }
+          },
+          "guidance": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+          },
+          "duration": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "comparison", "unit"],
+            "properties": {
+              "kind": { "enum": ["exposure", "time-to-event"] },
+              "comparison": { "enum": ["less-than", "at-most", "reported"] },
+              "unit": { "enum": ["min", "h", "d", "wk"] },
+              "amount": { "type": "number", "exclusiveMinimum": 0 },
+              "minimum": { "type": "number", "exclusiveMinimum": 0 },
+              "maximum": { "type": "number", "exclusiveMinimum": 0 },
+              "event": {
+                "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+              }
+            },
+            "oneOf": [
+              {
+                "required": ["amount"],
+                "properties": {
+                  "minimum": false,
+                  "maximum": false,
+                  "amount": true
+                },
+                "type": "object"
+              },
+              {
+                "required": ["minimum", "maximum"],
+                "properties": {
+                  "amount": false,
+                  "minimum": true,
+                  "maximum": true
+                },
+                "type": "object"
+              }
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": { "kind": { "const": "time-to-event" } }
+                },
+                "then": {
+                  "required": ["event"],
+                  "properties": { "event": true }
+                }
+              }
+            ]
+          }
+        },
+        "dependentRequired": {
+          "quantity": ["comparison"],
+          "comparison": ["quantity"]
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "role": { "const": "source-classification" } }
+            },
+            "then": {
+              "required": ["sourceClass"],
+              "properties": { "quantity": false, "sourceClass": true }
+            },
+            "else": { "properties": { "sourceClass": false } }
+          },
+          {
+            "if": {
+              "properties": {
+                "comparison": {
+                  "enum": ["above", "below", "at-least", "at-most"]
+                }
+              },
+              "required": ["comparison"]
+            },
+            "then": {
+              "properties": {
+                "quantity": {
+                  "required": ["amount"],
+                  "type": "object",
+                  "properties": { "amount": true }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "applicabilityPath": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+      }
+    },
+    "sourceSetting": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+    },
+    "qualifications": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+      }
+    }
+  }
+}

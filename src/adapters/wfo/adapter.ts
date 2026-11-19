@@ -1,0 +1,1594 @@
+import { createHash, randomUUID } from "node:crypto";
+import { createReadStream, createWriteStream } from "node:fs";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { once } from "node:events";
+import { finished } from "node:stream/promises";
+import {
+  GROW_SOURCE_ID,
+  GROW_PROVIDER_ID,
+  GROW_SOURCE_MANIFEST_ID,
+  GROW_SOURCE_RELEASE_ID,
+  IMPORT_DIAGNOSTIC_SCHEMA,
+  MATCH_METHOD,
+  NAME_NORMALIZATION_ID,
+  RECONCILIATION_MANIFEST_SCHEMA,
+  SOURCE_MANIFEST_SCHEMA,
+  TAXON_MATCH_CANDIDATE_SCHEMA,
+  WFO_ARCHIVE_LOCATOR,
+  WFO_ARCHIVE_MD5,
+  WFO_ARCHIVE_BYTE_SIZE,
+  WFO_PROVIDER_ID,
+  WFO_SOURCE_ID,
+  WFO_SOURCE_MANIFEST_ID,
+  WFO_SOURCE_RELEASE_ID,
+  WFO_TAXONOMIC_RECORD_SCHEMA,
+} from "./constants.js";
+import {
+  CROPGRAPH_IDENTITY_CANDIDATE_SCHEMA,
+  CROPGRAPH_PROVIDER_ID,
+  CROPGRAPH_RAW_RECORD_SCHEMA,
+  CROPGRAPH_SOURCE_ID,
+  CROPGRAPH_SOURCE_MANIFEST_ID,
+  CROPGRAPH_SOURCE_RELEASE_ID,
+} from "../cropgraph/constants.js";
+import { readWfoSnapshot, WfoSnapshotError } from "./read-snapshot.js";
+import type {
+  GrowImportRecord,
+  CropGraphIdentityCandidate,
+  CropGraphSelectedRecord,
+  SourceNameSeed,
+  TaxonMatchCandidate,
+  TaxonMatchOutcome,
+  WfoDiagnostic,
+  WfoSnapshotRecord,
+  WfoStatusCategory,
+  WfoTaxonomicOutputRecord,
+  WfoTaxonMatchAlternative,
+} from "./types.js";
+import { readJsonLines } from "../../serialization/json-lines.js";
+import {
+  makeSemanticSubrecordKey,
+  serializeQualifiedSourceRecordKey,
+  serializeSemanticSubrecordKey,
+} from "../../domain/source-keys.js";
+import { serializeCanonicalJson } from "../../serialization/canonical-json.js";
+import { validate, type ValidationApi } from "../../schema/validation-api.js";
+import { dataRoot } from "../../repository-paths.js";
+
+const WFO_SOURCE_MANIFEST_PATH = "data/sources/wfo/source-manifest.json";
+const GROW_SOURCE_MANIFEST_PATH = "data/sources/grow/source-manifest.json";
+const CROPGRAPH_SOURCE_MANIFEST_PATH =
+  "data/sources/cropgraph/source-manifest.json";
+const RECONCILIATION_OUTPUTS = [
+  {
+    role: "taxon-match-candidates",
+    path: "taxon-match-candidates.jsonl",
+    schemaId: TAXON_MATCH_CANDIDATE_SCHEMA,
+  },
+  {
+    role: "wfo-taxonomic-records",
+    path: "wfo-taxonomic-records.jsonl",
+    schemaId: WFO_TAXONOMIC_RECORD_SCHEMA,
+  },
+  {
+    role: "diagnostics",
+    path: "diagnostics.jsonl",
+    schemaId: IMPORT_DIAGNOSTIC_SCHEMA,
+  },
+] as const;
+
+export interface WfoImportOptions {
+  readonly growRunDirectory: string;
+  readonly cropGraphRunDirectory: string;
+  readonly snapshotPath: string;
+  readonly outputDirectory: string;
+  readonly wfoSourceManifestPath?: string;
+  readonly growSourceManifestPath?: string;
+  readonly cropGraphSourceManifestPath?: string;
+  readonly validationApi?: ValidationApi;
+}
+
+export interface WfoImportResult {
+  readonly outputDirectory: string;
+  readonly manifest: Readonly<Record<string, unknown>>;
+  readonly candidates: readonly TaxonMatchCandidate[];
+  readonly taxonomicRecords: readonly WfoTaxonomicOutputRecord[];
+  readonly diagnostics: readonly WfoDiagnostic[];
+}
+
+interface SourceManifest {
+  readonly id?: unknown;
+  readonly provider?: { readonly id?: unknown };
+  readonly release?: { readonly identifier?: unknown };
+  readonly licenceReview?: {
+    readonly status?: unknown;
+    readonly declaredLicence?: unknown;
+  };
+  readonly profileEligibility?: readonly {
+    readonly profile?: unknown;
+    readonly decision?: unknown;
+  }[];
+  readonly resources?: readonly {
+    readonly locator?: unknown;
+    readonly checksum?: {
+      readonly algorithm?: unknown;
+      readonly value?: unknown;
+    };
+    readonly byteSize?: unknown;
+  }[];
+}
+
+interface ImporterRunManifest {
+  readonly importer?: {
+    readonly name?: unknown;
+    readonly version?: unknown;
+  };
+  readonly sourceManifest?: {
+    readonly id?: unknown;
+    readonly sha256?: unknown;
+  };
+  readonly configuration?: unknown;
+  readonly outputs?: readonly RunOutputDescriptor[];
+  readonly configurationSha256?: unknown;
+}
+
+interface RunOutputDescriptor {
+  readonly path?: unknown;
+  readonly sha256?: unknown;
+  readonly byteSize?: unknown;
+  readonly recordCount?: unknown;
+  readonly schemaId?: unknown;
+}
+
+interface SourceInfo {
+  readonly manifest: SourceManifest;
+  readonly manifestBytes: Buffer;
+  readonly sha256: string;
+  readonly releaseId: string;
+  readonly sourceId: string;
+}
+
+interface FileMetadata {
+  readonly sha256: string;
+  readonly md5: string;
+  readonly byteSize: number;
+}
+
+export type WfoSelectionReason =
+  WfoTaxonomicOutputRecord["selectionReasons"][number];
+
+export interface SelectedWfoRecord {
+  readonly row: WfoSnapshotRecord;
+  readonly reasons: Set<WfoSelectionReason>;
+}
+
+export interface CandidateSourceMetadata {
+  readonly sourceId: string;
+  readonly sourceManifestId: string;
+  readonly sourceReleaseId: string;
+}
+
+export class ExactWfoNameMatchIndex {
+  readonly #requestedNames: ReadonlySet<string>;
+  readonly #matches = new Map<string, WfoSnapshotRecord[]>();
+  readonly #seenWfoIds = new Set<string>();
+  #rowsScanned = 0;
+
+  constructor(sourceNames: readonly SourceNameSeed[]) {
+    this.#requestedNames = new Set(
+      sourceNames.map((record) =>
+        normalizeScientificName(record.scientificName),
+      ),
+    );
+  }
+
+  add(row: WfoSnapshotRecord): void {
+    this.#rowsScanned += 1;
+    if (this.#seenWfoIds.has(row.taxonID)) {
+      throw new WfoSnapshotError(
+        "UNSUPPORTED_FORMAT",
+        `WFO snapshot repeats taxonID ${row.taxonID} at classification.csv record ${row.rowNumber}`,
+      );
+    }
+    this.#seenWfoIds.add(row.taxonID);
+    const normalized = normalizeScientificName(row.scientificName);
+    if (!this.#requestedNames.has(normalized)) return;
+    const rows = this.#matches.get(normalized) ?? [];
+    rows.push(row);
+    this.#matches.set(normalized, rows);
+  }
+
+  result(): {
+    readonly matchesByName: Map<string, WfoSnapshotRecord[]>;
+    readonly rowsScanned: number;
+  } {
+    for (const rows of this.#matches.values()) {
+      rows.sort((left, right) => left.taxonID.localeCompare(right.taxonID));
+    }
+    return { matchesByName: this.#matches, rowsScanned: this.#rowsScanned };
+  }
+}
+
+/** Reconcile qualified GROW and selected CropGraph names against pinned WFO. */
+export async function importWfoSnapshot(
+  options: WfoImportOptions,
+): Promise<WfoImportResult> {
+  const validationApi = options.validationApi ?? { validate };
+  const outputDirectory = resolve(options.outputDirectory);
+  const growRunDirectory = resolve(options.growRunDirectory);
+  const cropGraphRunDirectory = resolve(options.cropGraphRunDirectory);
+  const root = dataRoot(process.cwd());
+  const wfoManifestPath = resolve(
+    options.wfoSourceManifestPath ?? resolve(root, WFO_SOURCE_MANIFEST_PATH),
+  );
+  const growManifestPath = resolve(
+    options.growSourceManifestPath ?? resolve(root, GROW_SOURCE_MANIFEST_PATH),
+  );
+  const cropGraphManifestPath = resolve(
+    options.cropGraphSourceManifestPath ??
+      resolve(root, CROPGRAPH_SOURCE_MANIFEST_PATH),
+  );
+  const snapshotPath = resolve(options.snapshotPath);
+
+  const wfoSource = await readSourceInfo(wfoManifestPath, WFO_SOURCE_ID);
+  assertSchema(
+    validationApi,
+    SOURCE_MANIFEST_SCHEMA,
+    wfoSource.manifest,
+    "WFO source manifest",
+  );
+  assertExpectedWfoSource(wfoSource.manifest);
+  const growSource = await readSourceInfo(growManifestPath, GROW_SOURCE_ID);
+  assertSchema(
+    validationApi,
+    SOURCE_MANIFEST_SCHEMA,
+    growSource.manifest,
+    "GROW source manifest",
+  );
+  assertExpectedGrowSource(growSource.manifest);
+  const cropGraphSource = await readSourceInfo(
+    cropGraphManifestPath,
+    CROPGRAPH_SOURCE_ID,
+  );
+  assertSchema(
+    validationApi,
+    SOURCE_MANIFEST_SCHEMA,
+    cropGraphSource.manifest,
+    "CropGraph source manifest",
+  );
+  assertExpectedCropGraphSource(cropGraphSource.manifest);
+  const wfoResource = findDeclaredResource(
+    wfoSource.manifest,
+    WFO_ARCHIVE_LOCATOR,
+  );
+  assertPinnedWfoResource(wfoResource);
+  await assertSnapshotAvailable(snapshotPath);
+  const snapshotMetadata = await hashFile(snapshotPath);
+  assertResourceMatches(snapshotMetadata, wfoResource, WFO_ARCHIVE_LOCATOR);
+
+  const growRun = await readImporterRun(
+    growRunDirectory,
+    "GROW",
+    validationApi,
+  );
+  assertImporterRunSource(
+    growRun.manifest,
+    growSource,
+    "grow-edible-plant-database",
+    "GROW",
+  );
+  const growRecords = await verifyRunOutput(
+    growRun.manifest,
+    growRunDirectory,
+    "source-records.jsonl",
+    "GROW",
+  );
+  const growNames = await readGrowNames(growRecords.path);
+  assertRecordCount(growRecords.output, growNames.length, "GROW source names");
+
+  const cropGraphRun = await readImporterRun(
+    cropGraphRunDirectory,
+    "CropGraph",
+    validationApi,
+  );
+  assertImporterRunSource(
+    cropGraphRun.manifest,
+    cropGraphSource,
+    "cropgraph-raw-staging",
+    "CropGraph",
+  );
+  const cropGraphSelected = await verifyRunOutput(
+    cropGraphRun.manifest,
+    cropGraphRunDirectory,
+    "selected-records.jsonl",
+    "CropGraph",
+    CROPGRAPH_RAW_RECORD_SCHEMA,
+  );
+  const cropGraphIdentity = await verifyRunOutput(
+    cropGraphRun.manifest,
+    cropGraphRunDirectory,
+    "identity-candidates.jsonl",
+    "CropGraph",
+    CROPGRAPH_IDENTITY_CANDIDATE_SCHEMA,
+  );
+  const cropGraphNames = await readCropGraphNames(
+    cropGraphSelected.path,
+    cropGraphIdentity.path,
+    validationApi,
+  );
+  const selectedCropGraphCount = await countJsonLines(cropGraphSelected.path);
+  assertRecordCount(
+    cropGraphSelected.output,
+    selectedCropGraphCount,
+    "CropGraph selected records",
+  );
+  assertRecordCount(
+    cropGraphIdentity.output,
+    await countJsonLines(cropGraphIdentity.path),
+    "CropGraph identity candidates",
+  );
+  if (cropGraphNames.length !== selectedCropGraphCount) {
+    throw new Error(
+      "CropGraph scientific-name seeds do not cover every selected record",
+    );
+  }
+  const sourceNames = sortSourceNameSeeds([...growNames, ...cropGraphNames]);
+
+  const { matchesByName, rowsScanned } = await findExactWfoMatches(
+    snapshotPath,
+    sourceNames,
+  );
+  const acceptedTargetSelection = await loadAcceptedTargets(
+    snapshotPath,
+    matchesByName,
+  );
+  const selectedRows = acceptedTargetSelection.selectedRows;
+  const closureRowsScanned = await addTaxonomicClosure(
+    snapshotPath,
+    matchesByName,
+    selectedRows,
+  );
+  const candidates = createTaxonMatchCandidates(
+    sourceNames,
+    matchesByName,
+    selectedRows,
+    candidateSourceMetadata(wfoSource),
+    snapshotMetadata.sha256,
+  );
+  const taxonomicRecords = [...selectedRows.values()]
+    .map((selected) =>
+      toTaxonomicOutput(
+        selected.row,
+        [...selected.reasons],
+        candidateSourceMetadata(wfoSource),
+      ),
+    )
+    .sort((left, right) =>
+      left.externalIdentifier.identifier.localeCompare(
+        right.externalIdentifier.identifier,
+      ),
+    );
+  const diagnostics = createDiagnostics(candidates);
+
+  const inputs = [
+    {
+      role: `source-manifest-${growSource.manifest.id as string}`,
+      id: growSource.manifest.id as string,
+      locator: GROW_SOURCE_MANIFEST_PATH,
+      schemaId: SOURCE_MANIFEST_SCHEMA,
+      sha256: growSource.sha256,
+      byteSize: growSource.manifestBytes.byteLength,
+    },
+    {
+      role: `source-manifest-${cropGraphSource.manifest.id as string}`,
+      id: cropGraphSource.manifest.id as string,
+      locator: CROPGRAPH_SOURCE_MANIFEST_PATH,
+      schemaId: SOURCE_MANIFEST_SCHEMA,
+      sha256: cropGraphSource.sha256,
+      byteSize: cropGraphSource.manifestBytes.byteLength,
+    },
+    {
+      role: `source-manifest-${wfoSource.manifest.id as string}`,
+      id: wfoSource.manifest.id as string,
+      locator: WFO_SOURCE_MANIFEST_PATH,
+      schemaId: SOURCE_MANIFEST_SCHEMA,
+      sha256: wfoSource.sha256,
+      byteSize: wfoSource.manifestBytes.byteLength,
+    },
+    {
+      role: "wfo-source-snapshot",
+      locator: WFO_ARCHIVE_LOCATOR,
+      schemaId: "urn:hortinis:plants:schema:v1:source-snapshot",
+      sha256: snapshotMetadata.sha256,
+      byteSize: snapshotMetadata.byteSize,
+    },
+    {
+      role: "grow-importer-run-manifest",
+      locator: "grow-import-run:importer-run-manifest.json",
+      schemaId: "urn:hortinis:plants:schema:v1:importer-run-manifest",
+      sha256: hashBuffer(growRun.bytes),
+      byteSize: growRun.bytes.byteLength,
+      configurationSha256: growRun.manifest.configurationSha256 as string,
+    },
+    {
+      role: "grow-source-records",
+      locator: `grow-import-run:${growRecords.output.path as string}`,
+      sha256: growRecords.metadata.sha256,
+      byteSize: growRecords.metadata.byteSize,
+      recordCount: growNames.length,
+      ...(growRecords.output.schemaId === undefined
+        ? {}
+        : { schemaId: growRecords.output.schemaId }),
+    },
+    {
+      role: "cropgraph-importer-run-manifest",
+      locator: "cropgraph-import-run:importer-run-manifest.json",
+      schemaId: "urn:hortinis:plants:schema:v1:importer-run-manifest",
+      sha256: hashBuffer(cropGraphRun.bytes),
+      byteSize: cropGraphRun.bytes.byteLength,
+      configurationSha256: cropGraphRun.manifest.configurationSha256 as string,
+    },
+    {
+      role: "cropgraph-selected-records",
+      locator: `cropgraph-import-run:${cropGraphSelected.output.path as string}`,
+      schemaId: CROPGRAPH_RAW_RECORD_SCHEMA,
+      sha256: cropGraphSelected.metadata.sha256,
+      byteSize: cropGraphSelected.metadata.byteSize,
+      recordCount: selectedCropGraphCount,
+    },
+    {
+      role: "cropgraph-identity-candidates",
+      locator: `cropgraph-import-run:${cropGraphIdentity.output.path as string}`,
+      schemaId: CROPGRAPH_IDENTITY_CANDIDATE_SCHEMA,
+      sha256: cropGraphIdentity.metadata.sha256,
+      byteSize: cropGraphIdentity.metadata.byteSize,
+      recordCount: cropGraphIdentity.output.recordCount as number,
+    },
+  ];
+  const configuration = {
+    wfoRelease: WFO_SOURCE_RELEASE_ID,
+    sourceNameSeeds: [
+      {
+        sourceId: GROW_SOURCE_ID,
+        sourceReleaseId: GROW_SOURCE_RELEASE_ID,
+        role: "grow-full-taxonomic-name",
+      },
+      {
+        sourceId: CROPGRAPH_SOURCE_ID,
+        sourceReleaseId: CROPGRAPH_SOURCE_RELEASE_ID,
+        role: "selected-scientific-name-candidate",
+      },
+    ],
+    classificationEntry: "classification.csv",
+    nameNormalization: NAME_NORMALIZATION_ID,
+    matchMethod: MATCH_METHOD,
+    outputScope:
+      "GROW and selected CropGraph exact-match rows, accepted-name targets, their synonyms, genus and family rows",
+  };
+  const outputs = RECONCILIATION_OUTPUTS.map((output) => ({
+    ...output,
+    records:
+      output.path === "taxon-match-candidates.jsonl"
+        ? candidates
+        : output.path === "wfo-taxonomic-records.jsonl"
+          ? taxonomicRecords
+          : diagnostics,
+  }));
+  const manifest = {
+    schemaVersion: "1.0.0",
+    job: { name: "wfo-taxonomy-reconciliation", version: "0.2.0" },
+    inputs,
+    configuration,
+    configurationSha256: hashBuffer(serializeCanonicalJson(configuration)),
+    tools: { csvParse: "6.2.1", unzipper: "0.10.14", node: process.version },
+    outputs: [],
+    counts: buildCounts(
+      sourceNames,
+      candidates,
+      diagnostics,
+      taxonomicRecords,
+      rowsScanned + acceptedTargetSelection.rowsScanned + closureRowsScanned,
+    ),
+  };
+  assertUniqueRoles(inputs, "reconciliation input");
+  assertUniqueRoles(RECONCILIATION_OUTPUTS, "reconciliation output");
+  assertUniqueRoles(manifest.counts, "reconciliation count");
+  const published = await writeRun(
+    outputDirectory,
+    outputs,
+    manifest,
+    validationApi,
+  );
+  return {
+    outputDirectory,
+    manifest: published.manifest,
+    candidates,
+    taxonomicRecords,
+    diagnostics,
+  };
+}
+
+export function normalizeScientificName(value: string): string {
+  return value.normalize("NFC").trim().replace(/\s+/gu, " ");
+}
+
+export function classifyWfoStatus(
+  record: WfoSnapshotRecord,
+): WfoStatusCategory {
+  const status = record.taxonomicStatus.trim().toLocaleLowerCase("en");
+  if (status === "accepted" || status === "accepted name") return "accepted";
+  if (status.includes("unplaced")) return "unplaced";
+  if (status.includes("synonym")) return "synonym";
+  return "other";
+}
+
+async function readSourceInfo(
+  path: string,
+  sourceId: string,
+): Promise<SourceInfo> {
+  const manifestBytes = await readFile(path).catch((error: unknown) => {
+    throw new Error(`Unable to read source manifest at ${path}`, {
+      cause: error,
+    });
+  });
+  const manifest = objectValue<SourceManifest>(parseJson(manifestBytes, path));
+  const releaseId = stringValue(
+    manifest.release?.identifier,
+    "release.identifier",
+  );
+  stringValue(manifest.provider?.id, "provider.id");
+  return {
+    manifest,
+    manifestBytes,
+    sha256: hashBuffer(manifestBytes),
+    releaseId,
+    sourceId,
+  };
+}
+
+function assertExpectedWfoSource(manifest: SourceManifest): void {
+  if (
+    manifest.id !== WFO_SOURCE_MANIFEST_ID ||
+    manifest.provider?.id !== WFO_PROVIDER_ID ||
+    manifest.release?.identifier !== WFO_SOURCE_RELEASE_ID
+  ) {
+    throw new Error(
+      "WFO source manifest does not identify the pinned 2026-06 release",
+    );
+  }
+  assertSourceRights(manifest, "CC0-1.0", "WFO");
+}
+
+function assertExpectedGrowSource(manifest: SourceManifest): void {
+  if (
+    manifest.id !== GROW_SOURCE_MANIFEST_ID ||
+    manifest.provider?.id !== GROW_PROVIDER_ID ||
+    manifest.release?.identifier !== GROW_SOURCE_RELEASE_ID
+  ) {
+    throw new Error(
+      "GROW source manifest does not identify the pinned 2020 release",
+    );
+  }
+  assertSourceRights(manifest, "CC-BY-4.0", "GROW");
+}
+
+function assertExpectedCropGraphSource(manifest: SourceManifest): void {
+  if (
+    manifest.id !== CROPGRAPH_SOURCE_MANIFEST_ID ||
+    manifest.provider?.id !== CROPGRAPH_PROVIDER_ID ||
+    manifest.release?.identifier !== CROPGRAPH_SOURCE_RELEASE_ID
+  ) {
+    throw new Error(
+      "CropGraph source manifest does not identify the pinned release",
+    );
+  }
+  if (manifest.licenceReview?.declaredLicence !== "CC-BY-4.0") {
+    throw new Error("CropGraph source manifest has an unexpected licence");
+  }
+  if (
+    !manifest.profileEligibility?.some(
+      (entry) =>
+        entry.profile === "dev-validation" && entry.decision === "eligible",
+    )
+  ) {
+    throw new Error(
+      "CropGraph source manifest is not eligible for dev-validation",
+    );
+  }
+}
+
+function assertSourceRights(
+  manifest: SourceManifest,
+  expectedLicence: string,
+  sourceName: string,
+): void {
+  if (
+    manifest.licenceReview?.status !== "accepted" ||
+    manifest.licenceReview.declaredLicence !== expectedLicence
+  ) {
+    throw new Error(
+      `${sourceName} source manifest does not have an accepted ${expectedLicence} licence review`,
+    );
+  }
+  for (const profile of ["commercial", "dev-validation"]) {
+    if (
+      !manifest.profileEligibility?.some(
+        (entry) => entry.profile === profile && entry.decision === "eligible",
+      )
+    ) {
+      throw new Error(
+        `${sourceName} source manifest is not eligible for the ${profile} profile`,
+      );
+    }
+  }
+}
+
+function assertImporterRunSource(
+  run: ImporterRunManifest,
+  source: SourceInfo,
+  expectedImporter: string,
+  label: string,
+): void {
+  const sourceReference = run.sourceManifest;
+  if (
+    run.importer?.name !== expectedImporter ||
+    sourceReference?.id !== source.manifest.id ||
+    sourceReference?.sha256 !== source.sha256
+  ) {
+    throw new Error(
+      `${label} importer run does not match its checked-in source manifest`,
+    );
+  }
+  if (
+    typeof run.configurationSha256 !== "string" ||
+    run.configurationSha256 !==
+      hashBuffer(serializeCanonicalJson(run.configuration))
+  ) {
+    throw new Error(
+      `${label} importer run has an invalid configuration digest`,
+    );
+  }
+}
+
+async function readGrowNames(path: string): Promise<SourceNameSeed[]> {
+  const names: SourceNameSeed[] = [];
+  const seenKeys = new Set<string>();
+  for await (const entry of readJsonLines(createReadStream(path))) {
+    const record = objectValue<GrowImportRecord>(entry.value);
+    const sourceRecordKey = record.sourceRecordKey;
+    assertSeedSource(
+      sourceRecordKey,
+      candidateSourceMetadataFromValues(
+        GROW_SOURCE_ID,
+        GROW_SOURCE_MANIFEST_ID,
+        GROW_SOURCE_RELEASE_ID,
+      ),
+      "GROW source record",
+    );
+    const sourceRecordId = stringValue(
+      sourceRecordKey?.recordId,
+      "sourceRecordKey.recordId",
+    );
+    const sourceLocator = stringValue(record.sourceLocator, "sourceLocator");
+    const sourceName = record.fields?.["Full taxonomic name"];
+    if (typeof sourceName !== "string" || sourceName.trim().length === 0) {
+      throw new Error(
+        `GROW source record ${sourceRecordId} has no scientific name at ${sourceLocator}`,
+      );
+    }
+    const serializedKey = serializeQualifiedSourceRecordKey(sourceRecordKey);
+    if (seenKeys.has(serializedKey)) {
+      throw new Error(`GROW source-record output repeats key ${serializedKey}`);
+    }
+    seenKeys.add(serializedKey);
+    names.push({
+      sourceRecordKey,
+      sourceClaimKey: makeSemanticSubrecordKey(sourceRecordKey, [
+        { kind: "field", id: "Full taxonomic name" },
+      ]),
+      sourceLocators: [sourceLocator],
+      scientificName: sourceName,
+    });
+  }
+  if (names.length === 0) throw new Error("GROW source-record output is empty");
+  return sortSourceNameSeeds(names);
+}
+
+async function readCropGraphNames(
+  selectedPath: string,
+  identityPath: string,
+  validationApi: ValidationApi,
+): Promise<SourceNameSeed[]> {
+  const selectedRecords: CropGraphSelectedRecord[] = [];
+  for await (const entry of readJsonLines(createReadStream(selectedPath))) {
+    assertSchema(
+      validationApi,
+      CROPGRAPH_RAW_RECORD_SCHEMA,
+      entry.value,
+      `CropGraph selected record ${entry.lineNumber}`,
+    );
+    const record = objectValue<CropGraphSelectedRecord>(entry.value);
+    selectedRecords.push(record);
+  }
+  const identityCandidates: CropGraphIdentityCandidate[] = [];
+  for await (const entry of readJsonLines(createReadStream(identityPath))) {
+    assertSchema(
+      validationApi,
+      CROPGRAPH_IDENTITY_CANDIDATE_SCHEMA,
+      entry.value,
+      `CropGraph identity candidate ${entry.lineNumber}`,
+    );
+    const candidate = objectValue<CropGraphIdentityCandidate>(entry.value);
+    identityCandidates.push(candidate);
+  }
+  return createCropGraphSourceNameSeeds(selectedRecords, identityCandidates);
+}
+
+export function createCropGraphSourceNameSeeds(
+  selectedRecords: readonly CropGraphSelectedRecord[],
+  identityCandidates: readonly CropGraphIdentityCandidate[],
+): SourceNameSeed[] {
+  const selected = new Map<string, CropGraphSelectedRecord>();
+  for (const record of selectedRecords) {
+    assertSeedSource(
+      record.sourceRecordKey,
+      candidateSourceMetadataFromValues(
+        CROPGRAPH_SOURCE_ID,
+        CROPGRAPH_SOURCE_MANIFEST_ID,
+        CROPGRAPH_SOURCE_RELEASE_ID,
+      ),
+      "CropGraph selected record",
+    );
+    const key = serializeQualifiedSourceRecordKey(record.sourceRecordKey);
+    if (selected.has(key))
+      throw new Error(`CropGraph selected records repeat key ${key}`);
+    selected.set(key, record);
+  }
+  if (selected.size === 0)
+    throw new Error("CropGraph selected records are empty");
+
+  const seeds: SourceNameSeed[] = [];
+  const seenClaims = new Set<string>();
+  const coveredRecords = new Set<string>();
+  for (const candidate of identityCandidates) {
+    if (candidate.kind !== "scientific-name") continue;
+    assertSeedSource(
+      candidate.sourceRecordKey,
+      candidateSourceMetadataFromValues(
+        CROPGRAPH_SOURCE_ID,
+        CROPGRAPH_SOURCE_MANIFEST_ID,
+        CROPGRAPH_SOURCE_RELEASE_ID,
+      ),
+      "CropGraph identity candidate",
+    );
+    const recordKey = serializeQualifiedSourceRecordKey(
+      candidate.sourceRecordKey,
+    );
+    const sourceRecord = selected.get(recordKey);
+    if (sourceRecord === undefined) {
+      throw new Error(
+        `CropGraph scientific-name candidate refers to an unselected record ${recordKey}`,
+      );
+    }
+    if (coveredRecords.has(recordKey)) {
+      throw new Error(
+        `CropGraph selected record has more than one scientific-name seed ${recordKey}`,
+      );
+    }
+    const claimKey = serializeSemanticSubrecordKey(candidate.sourceClaimKey);
+    if (
+      serializeQualifiedSourceRecordKey(
+        candidate.sourceClaimKey.sourceRecordKey,
+      ) !== recordKey
+    ) {
+      throw new Error(
+        `CropGraph scientific-name claim key differs from its record ${recordKey}`,
+      );
+    }
+    if (seenClaims.has(claimKey))
+      throw new Error(`CropGraph repeats source-name claim ${claimKey}`);
+    seenClaims.add(claimKey);
+    coveredRecords.add(recordKey);
+    const valueText = candidate.value["text"];
+    if (
+      typeof candidate.rawValue !== "string" ||
+      typeof valueText !== "string" ||
+      candidate.rawValue !== valueText ||
+      valueText !== sourceRecord.rawEntry.scientificName ||
+      !candidate.sourceLocators.includes(
+        `${sourceRecord.sourceLocator}/scientificName`,
+      )
+    ) {
+      throw new Error(
+        `CropGraph scientific-name candidate differs from selected record ${recordKey}`,
+      );
+    }
+    seeds.push({
+      sourceRecordKey: candidate.sourceRecordKey,
+      sourceClaimKey: candidate.sourceClaimKey,
+      sourceCandidateId: candidate.id,
+      sourceLocators: [...candidate.sourceLocators],
+      scientificName: valueText,
+    });
+  }
+  if (coveredRecords.size !== selected.size) {
+    throw new Error(
+      "CropGraph scientific-name candidates do not cover every selected record",
+    );
+  }
+  return sortSourceNameSeeds(seeds);
+}
+
+function sortSourceNameSeeds(
+  seeds: readonly SourceNameSeed[],
+): SourceNameSeed[] {
+  return [...seeds].sort((left, right) =>
+    serializeSemanticSubrecordKey(left.sourceClaimKey).localeCompare(
+      serializeSemanticSubrecordKey(right.sourceClaimKey),
+    ),
+  );
+}
+
+async function findExactWfoMatches(
+  snapshotPath: string,
+  sourceNames: readonly SourceNameSeed[],
+): Promise<{
+  readonly matchesByName: Map<string, WfoSnapshotRecord[]>;
+  readonly rowsScanned: number;
+}> {
+  const index = new ExactWfoNameMatchIndex(sourceNames);
+  for await (const row of readWfoSnapshot(snapshotPath)) {
+    index.add(row);
+  }
+  return index.result();
+}
+
+async function loadAcceptedTargets(
+  snapshotPath: string,
+  matchesByName: ReadonlyMap<string, readonly WfoSnapshotRecord[]>,
+): Promise<{
+  readonly selectedRows: Map<string, SelectedWfoRecord>;
+  readonly rowsScanned: number;
+}> {
+  const selected = new Map<string, SelectedWfoRecord>();
+  const wantedAcceptedIds = new Set<string>();
+  for (const rows of matchesByName.values()) {
+    for (const row of rows) {
+      addSelected(selected, row, "source-name-match");
+      if (
+        row.acceptedNameUsageID.length > 0 &&
+        row.acceptedNameUsageID !== row.taxonID
+      ) {
+        wantedAcceptedIds.add(row.acceptedNameUsageID);
+      }
+    }
+  }
+  if (wantedAcceptedIds.size === 0) {
+    return { selectedRows: selected, rowsScanned: 0 };
+  }
+
+  let rowsScanned = 0;
+  for await (const row of readWfoSnapshot(snapshotPath)) {
+    rowsScanned += 1;
+    if (!wantedAcceptedIds.has(row.taxonID)) continue;
+    addSelected(selected, row, "accepted-name-target");
+  }
+  // Missing targets are retained as unresolved candidate relationships; they are not fatal.
+  return { selectedRows: selected, rowsScanned };
+}
+
+async function addTaxonomicClosure(
+  snapshotPath: string,
+  matchesByName: ReadonlyMap<string, readonly WfoSnapshotRecord[]>,
+  selected: Map<string, SelectedWfoRecord>,
+): Promise<number> {
+  const acceptedIds = new Set<string>();
+  for (const item of selected.values()) {
+    if (classifyWfoStatus(item.row) === "accepted") {
+      acceptedIds.add(item.row.taxonID);
+    }
+  }
+  const genusNames = new Set<string>();
+  const familyNames = new Set<string>();
+  for (const item of selected.values()) {
+    if (item.row.genus.length > 0)
+      genusNames.add(normalizeScientificName(item.row.genus));
+    if (item.row.family.length > 0)
+      familyNames.add(normalizeScientificName(item.row.family));
+  }
+  const sourceMatchedIds = new Set<string>();
+  for (const rows of matchesByName.values()) {
+    for (const row of rows) sourceMatchedIds.add(row.taxonID);
+  }
+
+  let rowsScanned = 0;
+  for await (const row of readWfoSnapshot(snapshotPath)) {
+    rowsScanned += 1;
+    const normalizedName = normalizeScientificName(row.scientificName);
+    const rank = row.taxonRank.toLocaleLowerCase("en");
+    if (
+      row.acceptedNameUsageID.length > 0 &&
+      acceptedIds.has(row.acceptedNameUsageID)
+    ) {
+      addSelected(selected, row, "synonym-of-selected-taxon");
+    }
+    if (sourceMatchedIds.has(row.taxonID)) {
+      addSelected(selected, row, "source-name-match");
+    }
+    if (acceptedIds.has(row.taxonID)) {
+      addSelected(selected, row, "accepted-name-target");
+    }
+    if (rank === "genus" && genusNames.has(normalizedName)) {
+      addSelected(selected, row, "genus-ancestor");
+    }
+    if (rank === "family" && familyNames.has(normalizedName)) {
+      addSelected(selected, row, "family-ancestor");
+    }
+  }
+  return rowsScanned;
+}
+
+function addSelected(
+  selected: Map<string, SelectedWfoRecord>,
+  row: WfoSnapshotRecord,
+  reason: WfoTaxonomicOutputRecord["selectionReasons"][number],
+): void {
+  const current = selected.get(row.taxonID);
+  if (current === undefined) {
+    selected.set(row.taxonID, { row, reasons: new Set([reason]) });
+  } else {
+    current.reasons.add(reason);
+  }
+}
+
+export function createTaxonMatchCandidates(
+  sourceNames: readonly SourceNameSeed[],
+  matchesByName: ReadonlyMap<string, readonly WfoSnapshotRecord[]>,
+  selectedRows: ReadonlyMap<string, SelectedWfoRecord>,
+  wfoSource: CandidateSourceMetadata,
+  snapshotSha256: string,
+): TaxonMatchCandidate[] {
+  return sourceNames.map((seed) => {
+    const sourceRecordKey = seed.sourceRecordKey;
+    const comparisonName = normalizeScientificName(seed.scientificName);
+    const rows = matchesByName.get(comparisonName) ?? [];
+    const alternatives = rows.map((row) =>
+      toAlternative(row, selectedRows, wfoSource),
+    );
+    const outcome = determineOutcome(rows, selectedRows);
+    return {
+      id: stableId(
+        `taxon_match_${sourceRecordKey.recordId}`,
+        `${serializeSemanticSubrecordKey(seed.sourceClaimKey)}|${wfoSource.sourceReleaseId}`,
+      ),
+      source: {
+        sourceRecordKey,
+        sourceClaimKey: seed.sourceClaimKey,
+        ...(seed.sourceCandidateId === undefined
+          ? {}
+          : { sourceCandidateId: seed.sourceCandidateId }),
+        sourceLocators: [...seed.sourceLocators],
+        sourceLocator: seed.sourceLocators[0]!,
+      },
+      snapshot: {
+        sourceManifestId: wfoSource.sourceManifestId,
+        sourceReleaseId: wfoSource.sourceReleaseId,
+        sha256: snapshotSha256,
+      },
+      sourceName: seed.scientificName,
+      comparisonName,
+      normalization: NAME_NORMALIZATION_ID,
+      outcome,
+      alternatives,
+      ...(rows.length === 0 ? {} : { matchMethod: MATCH_METHOD }),
+      reviewState: "unreviewed",
+    };
+  });
+}
+
+function determineOutcome(
+  rows: readonly WfoSnapshotRecord[],
+  selected: ReadonlyMap<string, SelectedWfoRecord>,
+): TaxonMatchOutcome {
+  const row = rows.length === 1 ? rows[0] : undefined;
+  const acceptedTarget =
+    row === undefined || row.acceptedNameUsageID.length === 0
+      ? undefined
+      : selected.get(row.acceptedNameUsageID)?.row;
+  return determineTaxonMatchOutcome(rows, acceptedTarget);
+}
+
+export function determineTaxonMatchOutcome(
+  rows: readonly WfoSnapshotRecord[],
+  acceptedTarget?: WfoSnapshotRecord,
+): TaxonMatchOutcome {
+  if (rows.length === 0) return "unmatched";
+  if (rows.length > 1) return "ambiguous";
+  const row = rows[0];
+  if (row === undefined) return "unmatched";
+  const category = classifyWfoStatus(row);
+  if (category === "accepted") return "candidate-accepted";
+  if (category === "unplaced") return "unplaced";
+  if (category === "synonym") {
+    return acceptedTarget !== undefined &&
+      classifyWfoStatus(acceptedTarget) === "accepted"
+      ? "candidate-synonym"
+      : "unresolved-status";
+  }
+  return "unresolved-status";
+}
+
+function toAlternative(
+  row: WfoSnapshotRecord,
+  selected: ReadonlyMap<string, SelectedWfoRecord>,
+  source: CandidateSourceMetadata,
+): WfoTaxonMatchAlternative {
+  const base = {
+    externalIdentifier: externalIdentifier(row.taxonID, source),
+    scientificName: row.scientificName,
+    ...(row.scientificNameAuthorship.length === 0
+      ? {}
+      : { authorship: row.scientificNameAuthorship }),
+    taxonRank: row.taxonRank,
+    taxonomicStatus: row.taxonomicStatus,
+    statusCategory: classifyWfoStatus(row),
+    ...(row.acceptedNameUsageID.length === 0
+      ? {}
+      : { acceptedNameIdentifier: row.acceptedNameUsageID }),
+    sourceLocator: wfoRowLocator(row),
+  };
+  const accepted =
+    row.acceptedNameUsageID === row.taxonID
+      ? undefined
+      : selected.get(row.acceptedNameUsageID)?.row;
+  return accepted === undefined
+    ? base
+    : {
+        ...base,
+        acceptedName: {
+          externalIdentifier: externalIdentifier(accepted.taxonID, source),
+          scientificName: accepted.scientificName,
+          ...(accepted.scientificNameAuthorship.length === 0
+            ? {}
+            : { authorship: accepted.scientificNameAuthorship }),
+          taxonRank: accepted.taxonRank,
+          taxonomicStatus: accepted.taxonomicStatus,
+          sourceLocator: wfoRowLocator(accepted),
+        },
+      };
+}
+
+function toTaxonomicOutput(
+  row: WfoSnapshotRecord,
+  reasons: WfoTaxonomicOutputRecord["selectionReasons"],
+  source: CandidateSourceMetadata,
+): WfoTaxonomicOutputRecord {
+  return {
+    externalIdentifier: externalIdentifier(row.taxonID, source),
+    scientificName: row.scientificName,
+    ...(row.scientificNameAuthorship.length === 0
+      ? {}
+      : { authorship: row.scientificNameAuthorship }),
+    taxonRank: row.taxonRank,
+    taxonomicStatus: row.taxonomicStatus,
+    ...(row.acceptedNameUsageID.length === 0
+      ? {}
+      : { acceptedNameUsageId: row.acceptedNameUsageID }),
+    ...(row.parentNameUsageID.length === 0
+      ? {}
+      : { parentNameUsageId: row.parentNameUsageID }),
+    ...(row.genus.length === 0 ? {} : { genus: row.genus }),
+    ...(row.family.length === 0 ? {} : { family: row.family }),
+    sourceLocator: wfoRowLocator(row),
+    selectionReasons: [...new Set(reasons)].sort(),
+  };
+}
+
+function createDiagnostics(
+  candidates: readonly TaxonMatchCandidate[],
+): WfoDiagnostic[] {
+  const diagnostics: WfoDiagnostic[] = [];
+  for (const candidate of candidates) {
+    const source = candidate.source;
+    if (
+      candidate.outcome === "candidate-accepted" ||
+      candidate.outcome === "candidate-synonym"
+    )
+      continue;
+    const codeByOutcome: Readonly<
+      Record<
+        Exclude<TaxonMatchOutcome, "candidate-accepted" | "candidate-synonym">,
+        string
+      >
+    > = {
+      ambiguous: "AMBIGUOUS_TAXON_MATCH",
+      unplaced: "UNPLACED_TAXON_NAME",
+      "unresolved-status": "UNRESOLVED_TAXON_STATUS",
+      unmatched: "UNMATCHED_TAXON_NAME",
+    };
+    diagnostics.push({
+      kind: "unresolved-mapping",
+      code: codeByOutcome[candidate.outcome],
+      message: outcomeMessage(candidate.outcome),
+      sourceRecordKey: source.sourceRecordKey,
+      sourceRecordId: source.sourceRecordKey.recordId,
+      sourceLocator: source.sourceLocator,
+      originalValue: candidate.sourceName,
+      details: {
+        outcome: candidate.outcome,
+        comparisonName: candidate.comparisonName,
+        alternativeWfoIds: candidate.alternatives.map(
+          (alternative) => alternative.externalIdentifier.identifier,
+        ),
+      },
+    });
+  }
+  return diagnostics.sort((left, right) =>
+    `${left.code}\u0000${left.sourceRecordKey === undefined ? "" : serializeQualifiedSourceRecordKey(left.sourceRecordKey)}`.localeCompare(
+      `${right.code}\u0000${right.sourceRecordKey === undefined ? "" : serializeQualifiedSourceRecordKey(right.sourceRecordKey)}`,
+    ),
+  );
+}
+
+function outcomeMessage(outcome: TaxonMatchOutcome): string {
+  switch (outcome) {
+    case "ambiguous":
+      return "More than one WFO record has this conservatively normalized exact name; no record was selected.";
+    case "unplaced":
+      return "An exact WFO name exists but is unplaced in the snapshot.";
+    case "unresolved-status":
+      return "An exact WFO name exists but its taxonomic status or accepted-name relationship is unresolved.";
+    case "unmatched":
+      return "No exact WFO name match was found after documented conservative normalization.";
+    case "candidate-accepted":
+    case "candidate-synonym":
+      return "";
+  }
+}
+
+function buildCounts(
+  sourceNames: readonly SourceNameSeed[],
+  candidates: readonly TaxonMatchCandidate[],
+  diagnostics: readonly WfoDiagnostic[],
+  taxonomicRecords: readonly WfoTaxonomicOutputRecord[],
+  wfoRowsScanned: number,
+): readonly { readonly role: string; readonly count: number }[] {
+  const byOutcome = (outcome: TaxonMatchOutcome) =>
+    candidates.filter((candidate) => candidate.outcome === outcome).length;
+  const sourceCount = (sourceId: string) =>
+    sourceNames.filter(
+      (seed) => seed.sourceRecordKey.source.sourceId === sourceId,
+    ).length;
+  const values: readonly [string, number][] = [
+    ["source-name-seeds", sourceNames.length],
+    ["grow-source-name-seeds", sourceCount(GROW_SOURCE_ID)],
+    ["cropgraph-source-name-seeds", sourceCount(CROPGRAPH_SOURCE_ID)],
+    [
+      "unique-input-names",
+      new Set(
+        sourceNames.map((item) => normalizeScientificName(item.scientificName)),
+      ).size,
+    ],
+    ["candidate-accepted", byOutcome("candidate-accepted")],
+    ["candidate-synonym", byOutcome("candidate-synonym")],
+    ["ambiguous", byOutcome("ambiguous")],
+    ["unplaced", byOutcome("unplaced")],
+    ["unresolved-status", byOutcome("unresolved-status")],
+    ["unmatched", byOutcome("unmatched")],
+    ["wfo-rows-scanned", wfoRowsScanned],
+    ["selected-wfo-records", taxonomicRecords.length],
+    ["unresolved-mappings", diagnostics.length],
+  ];
+  return values.map(([role, count]) => ({ role, count }));
+}
+
+async function writeRun(
+  outputDirectory: string,
+  outputs: readonly {
+    readonly role: string;
+    readonly path: string;
+    readonly schemaId: string;
+    readonly records: readonly unknown[];
+  }[],
+  manifestBase: Readonly<Record<string, unknown>>,
+  validationApi: ValidationApi,
+): Promise<{ readonly manifest: Readonly<Record<string, unknown>> }> {
+  const absoluteOutput = resolve(outputDirectory);
+  const parent = dirname(absoluteOutput);
+  await mkdir(parent, { recursive: true });
+  const staging = await mkdtemp(join(parent, ".wfo-reconciliation-"));
+  try {
+    const outputDescriptors = [];
+    for (const output of outputs) {
+      const result = await writeJsonlOutput(
+        join(staging, output.path),
+        output.records,
+        output.schemaId,
+        validationApi,
+      );
+      outputDescriptors.push({
+        role: output.role,
+        path: output.path,
+        mediaType: "application/jsonl",
+        schemaId: output.schemaId,
+        ...result,
+      });
+    }
+    const manifest = { ...manifestBase, outputs: outputDescriptors };
+    const validation = validationApi.validate(
+      RECONCILIATION_MANIFEST_SCHEMA,
+      manifest,
+    );
+    if (!validation.valid) {
+      throw new Error(
+        `Taxonomy reconciliation manifest failed validation: ${JSON.stringify(validation.errors)}`,
+      );
+    }
+    await writeFile(
+      join(staging, "reconciliation-run-manifest.json"),
+      Buffer.concat([
+        Buffer.from(serializeCanonicalJson(manifest)),
+        Buffer.from("\n"),
+      ]),
+      { flag: "wx" },
+    );
+    await publishDirectory(staging, absoluteOutput);
+    return { manifest };
+  } catch (error) {
+    await rm(staging, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+async function writeJsonlOutput(
+  path: string,
+  records: readonly unknown[],
+  schemaId: string,
+  validationApi: ValidationApi,
+): Promise<{
+  readonly sha256: string;
+  readonly byteSize: number;
+  readonly recordCount: number;
+}> {
+  const stream = createWriteStream(path, { flags: "wx" });
+  const completion = finished(stream);
+  void completion.catch(() => undefined);
+  const hash = createHash("sha256");
+  let byteSize = 0;
+  let recordCount = 0;
+  try {
+    for (const record of records) {
+      const validation = validationApi.validate(schemaId, record);
+      if (!validation.valid) {
+        throw new Error(
+          `Output ${path} record ${recordCount + 1} failed ${schemaId}: ${JSON.stringify(validation.errors)}`,
+        );
+      }
+      const framed = Buffer.concat([
+        Buffer.from(serializeCanonicalJson(record)),
+        Buffer.from("\n"),
+      ]);
+      if (!stream.write(framed)) await once(stream, "drain");
+      hash.update(framed);
+      byteSize += framed.byteLength;
+      recordCount += 1;
+    }
+    stream.end();
+    await completion;
+  } catch (error) {
+    stream.destroy();
+    throw error;
+  }
+  return { sha256: hash.digest("hex"), byteSize, recordCount };
+}
+
+async function publishDirectory(
+  staging: string,
+  destination: string,
+): Promise<void> {
+  const backup = `${destination}.backup-${randomUUID()}`;
+  let movedOld = false;
+  try {
+    await access(destination);
+    await rename(destination, backup);
+    movedOld = true;
+  } catch (error) {
+    if (!isMissingFile(error)) throw error;
+  }
+  try {
+    await rename(staging, destination);
+  } catch (error) {
+    if (movedOld) await rename(backup, destination);
+    throw error;
+  }
+  if (movedOld) await rm(backup, { recursive: true, force: true });
+}
+
+async function readImporterRun(
+  directory: string,
+  label: string,
+  validationApi: ValidationApi,
+): Promise<{ readonly manifest: ImporterRunManifest; readonly bytes: Buffer }> {
+  const path = join(directory, "importer-run-manifest.json");
+  const bytes = await readFile(path).catch((error: unknown) => {
+    throw new Error(
+      `Unable to read ${label} importer run manifest at ${path}`,
+      {
+        cause: error,
+      },
+    );
+  });
+  const value = parseJson(bytes, path);
+  assertSchema(
+    validationApi,
+    "urn:hortinis:plants:schema:v1:importer-run-manifest",
+    value,
+    `${label} importer run manifest`,
+  );
+  return { manifest: objectValue<ImporterRunManifest>(value), bytes };
+}
+
+async function verifyRunOutput(
+  run: ImporterRunManifest,
+  directory: string,
+  outputPath: string,
+  label: string,
+  expectedSchemaId?: string,
+): Promise<{
+  readonly output: RunOutputDescriptor;
+  readonly path: string;
+  readonly metadata: FileMetadata;
+}> {
+  const output = run.outputs?.find((item) => item.path === outputPath);
+  if (
+    output === undefined ||
+    typeof output.path !== "string" ||
+    typeof output.sha256 !== "string" ||
+    typeof output.byteSize !== "number" ||
+    typeof output.recordCount !== "number"
+  ) {
+    throw new Error(`${label} run does not declare complete ${outputPath}`);
+  }
+  if (expectedSchemaId !== undefined && output.schemaId !== expectedSchemaId) {
+    throw new Error(`${label} run ${outputPath} has an unexpected schema`);
+  }
+  const path = join(directory, output.path);
+  const metadata = await hashFile(path);
+  if (
+    metadata.sha256 !== output.sha256 ||
+    metadata.byteSize !== output.byteSize
+  ) {
+    throw new Error(`${label} run ${outputPath} checksum or size mismatch`);
+  }
+  return { output, path, metadata };
+}
+
+function assertRecordCount(
+  output: RunOutputDescriptor,
+  actual: number,
+  label: string,
+): void {
+  if (output.recordCount !== actual) {
+    throw new Error(`${label} count does not match its run manifest`);
+  }
+}
+
+async function countJsonLines(path: string): Promise<number> {
+  let count = 0;
+  for await (const entry of readJsonLines(createReadStream(path))) {
+    if (entry.value !== undefined) count += 1;
+  }
+  return count;
+}
+
+function findDeclaredResource(
+  manifest: SourceManifest,
+  locator: string,
+): {
+  readonly checksum: { readonly algorithm?: unknown; readonly value?: unknown };
+  readonly byteSize?: unknown;
+} {
+  const resource = manifest.resources?.find((item) => item.locator === locator);
+  if (resource === undefined) {
+    throw new Error(`Source manifest does not declare WFO resource ${locator}`);
+  }
+  const checksum = resource.checksum;
+  if (checksum === undefined) {
+    throw new Error(`WFO source manifest has no checksum for ${locator}`);
+  }
+  if (checksum.algorithm !== "sha256" && checksum.algorithm !== "md5") {
+    throw new Error(
+      `WFO source manifest has no supported checksum for ${locator}`,
+    );
+  }
+  return {
+    checksum,
+    ...(resource.byteSize === undefined ? {} : { byteSize: resource.byteSize }),
+  };
+}
+
+function assertResourceMatches(
+  actual: FileMetadata,
+  resource: ReturnType<typeof findDeclaredResource>,
+  locator: string,
+): void {
+  const expectedChecksum = String(resource.checksum.value);
+  const actualChecksum =
+    resource.checksum.algorithm === "md5" ? actual.md5 : actual.sha256;
+  if (actualChecksum !== expectedChecksum) {
+    throw new Error(
+      `${String(resource.checksum.algorithm).toUpperCase()} mismatch for ${locator}: expected ${expectedChecksum}, got ${actualChecksum}`,
+    );
+  }
+  if (
+    typeof resource.byteSize === "number" &&
+    actual.byteSize !== resource.byteSize
+  ) {
+    throw new Error(`Byte size mismatch for ${locator}`);
+  }
+}
+
+function assertPinnedWfoResource(
+  resource: ReturnType<typeof findDeclaredResource>,
+): void {
+  if (
+    resource.checksum.algorithm !== "md5" ||
+    resource.checksum.value !== WFO_ARCHIVE_MD5 ||
+    resource.byteSize !== WFO_ARCHIVE_BYTE_SIZE
+  ) {
+    throw new Error(
+      "WFO source manifest archive checksum or byte size differs from the pinned Zenodo 2026-06 file",
+    );
+  }
+}
+
+function assertSchema(
+  validationApi: ValidationApi,
+  schemaId: string,
+  value: unknown,
+  label: string,
+): void {
+  const validation = validationApi.validate(schemaId, value);
+  if (!validation.valid) {
+    throw new Error(
+      `${label} failed ${schemaId}: ${JSON.stringify(validation.errors)}`,
+    );
+  }
+}
+
+function externalIdentifier(
+  identifier: string,
+  source: CandidateSourceMetadata,
+) {
+  return {
+    sourceId: source.sourceId,
+    sourceManifestId: source.sourceManifestId,
+    sourceReleaseId: source.sourceReleaseId,
+    identifier,
+  };
+}
+
+function candidateSourceMetadata(source: SourceInfo): CandidateSourceMetadata {
+  return {
+    sourceId: source.sourceId,
+    sourceManifestId: source.manifest.id as string,
+    sourceReleaseId: source.releaseId,
+  };
+}
+
+function candidateSourceMetadataFromValues(
+  sourceId: string,
+  sourceManifestId: string,
+  sourceReleaseId: string,
+): CandidateSourceMetadata {
+  return { sourceId, sourceManifestId, sourceReleaseId };
+}
+
+function assertSeedSource(
+  key: SourceNameSeed["sourceRecordKey"],
+  expected: CandidateSourceMetadata,
+  label: string,
+): void {
+  if (
+    key?.source?.sourceId !== expected.sourceId ||
+    key.source.sourceManifestId !== expected.sourceManifestId ||
+    key.source.sourceReleaseId !== expected.sourceReleaseId ||
+    typeof key.recordId !== "string" ||
+    key.recordId.length === 0
+  ) {
+    throw new Error(`${label} has the wrong qualified source key`);
+  }
+}
+
+function wfoRowLocator(row: WfoSnapshotRecord): string {
+  return `${WFO_ARCHIVE_LOCATOR}!classification.csv#row=${row.rowNumber}`;
+}
+
+function stableId(prefix: string, input: string): string {
+  const digest = createHash("sha256").update(input).digest("hex").slice(0, 24);
+  return `${prefix}_${digest}`;
+}
+
+function assertUniqueRoles(
+  descriptors: readonly { readonly role: string }[],
+  label: string,
+): void {
+  const roles = new Set<string>();
+  for (const descriptor of descriptors) {
+    if (roles.has(descriptor.role))
+      throw new Error(`${label} repeats role ${descriptor.role}`);
+    roles.add(descriptor.role);
+  }
+}
+
+async function hashFile(path: string): Promise<FileMetadata> {
+  const sha256 = createHash("sha256");
+  const md5 = createHash("md5");
+  let byteSize = 0;
+  for await (const chunk of createReadStream(path)) {
+    const bytes = chunk as Buffer;
+    sha256.update(bytes);
+    md5.update(bytes);
+    byteSize += bytes.byteLength;
+  }
+  return { sha256: sha256.digest("hex"), md5: md5.digest("hex"), byteSize };
+}
+
+async function assertSnapshotAvailable(path: string): Promise<void> {
+  try {
+    await access(path);
+  } catch (error) {
+    if (isMissingFile(error)) {
+      throw new WfoSnapshotError(
+        "MISSING_SNAPSHOT",
+        `WFO snapshot is missing: ${path}`,
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+}
+
+function hashBuffer(bytes: Uint8Array): string {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+function parseJson(bytes: Buffer, locator: string): unknown {
+  try {
+    return JSON.parse(bytes.toString("utf8")) as unknown;
+  } catch (error) {
+    throw new Error(`Invalid JSON in ${locator}`, { cause: error });
+  }
+}
+
+function objectValue<T>(value: unknown): T {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Expected a JSON object");
+  }
+  return value as T;
+}
+
+function stringValue(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`Expected a non-empty string for ${field}`);
+  }
+  return value;
+}
+
+function isMissingFile(error: unknown): boolean {
+  return (
+    error !== null &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === "ENOENT"
+  );
+}

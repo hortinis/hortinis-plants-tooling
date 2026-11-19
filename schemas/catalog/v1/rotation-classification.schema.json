@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:rotation-classification",
+  "title": "Source-qualified crop rotation classification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["scheme", "status", "sourceLabel"],
+  "properties": {
+    "scheme": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceId", "field"],
+      "properties": {
+        "sourceId": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+        },
+        "field": { "type": "string", "minLength": 1 }
+      }
+    },
+    "status": { "enum": ["classified", "unknown", "not-applicable"] },
+    "sourceLabel": {
+      "anyOf": [
+        { "type": "string", "pattern": "\\S" },
+        {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/englishFrenchText"
+        }
+      ]
+    }
+  }
+}

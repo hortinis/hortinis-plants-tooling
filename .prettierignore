@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.cache/source-inputs/
+.cache/import-runs/
+data/sources/grow/releases/
+data/sources/cropgraph/releases/
+artifacts/releases/
+coverage/
+*.tsbuildinfo
+pnpm-lock.yaml
+# Canonical immutable source metadata; hashes are pinned in the dataset manifest.
+data/sources/supplemental/
+
+# Frozen release scope bytes are checksummed; revise explicitly, never reformat.
+data/releases/reviewed-catalog/inventory.json
+data/releases/reviewed-catalog/starting-pins.json
+
+local-output/

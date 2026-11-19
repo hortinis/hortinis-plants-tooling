@@ -1,0 +1,339 @@
+# Catalog implementation plan
+
+- Status: in progress
+- Tracking states: `planned`, `in progress`, `validated`, `blocked`
+
+## Work packages
+
+- **C0 — Decisions (`validated`):** code/data licences, ShareAlike treatment, the metropolitan-France MVP, cultivar depth, schema ownership, release coordination and sole-maintainer review authority are accepted in ADR-0004 through ADR-0006.
+- **C1 — Foundation (`in progress`):** add schemas, source manifests, importer boundaries, contributor workflow, deterministic build rules and CI checks.
+- **C2 — Contracts (`validated`):** implement separate authoring and consumer schemas for taxon, plant concept, cultivar group, cultivar, localized name, plant fact, source, assertion, context, licence, review, cultivation rule, relationship, geography, manifest and homogeneous JSONL chunks; add complete schema conformance fixtures. Compatibility policy is deferred for Hortinis coordination.
+- **C3 — Sources:** pin WFO, TAXREF, GROW and CropGraph; preserve source-specific rights and immutable locators; implement the source adapters and staging contracts described by the [four-source curation main track](four-source-curation-plan.md).
+- **C4 — Curation (`in progress`):** follow the [four-source curation main track](four-source-curation-plan.md): WFO-first identity review, TAXREF localization, GROW/CropGraph cultivation candidates, explicit comparisons, transactional decisions and scoped readiness reporting.
+- **C5 — Release:** compile accepted projections into deterministic JSONL.gz chunks; generate manifests, hashes, source manifests and attribution; enforce size, determinism and licence gates; publish manual GitHub Release assets.
+- **C6 — Integration:** test contract acquisition, Dexie import, activation, rollback, quota failure, retired references and cross-runtime recommendation fixtures.
+- **C7 — Optional artifacts (`planned`):** after the first release, specify and build independently licensed image packs with per-image provenance; coordinate a separate `hortinis-climate` repository and artifact without making either one a core catalog dependency.
+
+Production catalog integration in Hortinis remains blocked until its foundation readiness gate and P0.7
+catalog/recommendation specification are accepted. A separate local-validation track may proceed earlier
+under the constraints described in `V1` below; it does not qualify as a catalog release or foundation
+readiness.
+
+## C1 technical execution plan
+
+Each step is intended to be implemented and validated independently. Every completed step must leave all previously introduced checks passing.
+
+### C1.1 — Project bootstrap (`validated`)
+
+- Pin Node.js 24 and pnpm 11.26.0; stay on pnpm 11 while the pnpm 12 native CLI transition settles.
+- Create an ESM `package.json` and commit the pnpm lockfile.
+- Add strict TypeScript configuration.
+- Create minimal source and test directories.
+- Add build and type-check commands.
+
+Acceptance: a clean checkout can install dependencies, type-check and build.
+
+### C1.2 — Linting and formatting (`validated`)
+
+#### C1.2a — Deterministic formatting (`validated`)
+
+- Pin Prettier and its configuration.
+- Provide `format:check` and automatic-formatting commands.
+- Ignore dependency and generated build directories.
+
+Acceptance: the formatting check passes without changing files.
+
+#### C1.2b — ESLint (`validated`)
+
+- Add ESLint with flat configuration and TypeScript support.
+- Keep the TypeScript 7 native compiler for builds while exposing the TypeScript 6 compatibility API
+  to typescript-eslint through the `typescript` package name.
+- Start with the stable recommended type-checked rules and the TypeScript project service.
+- Reserve `.cache/source-inputs/` for downloaded inputs and `artifacts/releases/` for generated
+  release artifacts; ignore both paths consistently in Git, ESLint and Prettier.
+- Provide lint check and automatic-fix commands.
+
+Acceptance: lint and formatting checks pass without changing files.
+
+### C1.3 — Testing foundation (`validated`)
+
+- Configure Vitest for TypeScript on Node.js.
+- Add test and coverage commands.
+- Establish unit-test and fixture locations.
+- Add a minimal smoke test for the test harness.
+
+Acceptance: tests and coverage run successfully from a clean checkout.
+
+### C1.4 — Basic continuous integration
+
+- Run CI with Node.js 24 and the pinned pnpm version.
+- Install dependencies using the frozen lockfile.
+- Run formatting, linting, type-checking, build and tests.
+- Cache pnpm dependencies without caching generated catalog artifacts.
+- Do not download catalog sources or publish releases in basic CI.
+
+Acceptance: pushes and pull requests run the same checks available locally.
+
+### C1.5 — Schema compilation infrastructure (`validated`)
+
+- Add Ajv with JSON Schema 2020-12 support.
+- Define locations for authored schemas and generated compilation output.
+- Register schemas by stable schema identifier.
+- Detect duplicate identifiers and unresolved references.
+- Compile schemas during the build while keeping generated output out of ordinary Git history.
+
+Acceptance: an example schema can be compiled and loaded by its identifier.
+
+### C1.6 — Validation API (`validated`)
+
+Create a small repository-owned API between callers and Ajv. Callers provide a schema identifier and an unknown value. Ordinary data failures return a structured result instead of throwing:
+
+```ts
+type ValidationResult =
+  { valid: true } | { valid: false; errors: ValidationError[] };
+
+interface ValidationError {
+  instancePath: string;
+  schemaPath: string;
+  keyword: string;
+  message: string;
+}
+```
+
+- Compile validators once and reuse them.
+- Return stable error ordering for deterministic reports.
+- Do not expose Ajv-specific objects outside the validation module.
+- Do not apply defaults, remove fields or otherwise transform input during validation.
+- Treat an unknown schema identifier or invalid registry configuration as a pipeline error.
+
+Acceptance: consumers can validate data without importing or configuring Ajv directly.
+
+### C1.7 — Schema conformance testing (`validated`)
+
+#### C1.7a — Critical conformance fixtures (`validated`)
+
+- Define a reviewable JSON fixture manifest and raw fixture convention.
+- Run positive, negative and unknown-schema cases through the compiled registry and validation API.
+- Assert stable negative error keywords and instance paths.
+- Prove both successful and unresolved cross-schema references and deterministic compilation.
+
+The initial C1.7a capability established the critical conformance gate required by V1. The completed
+suite now also requires positive and negative fixture coverage for every non-definition schema in the
+compiled registry; reusable `common` definitions are exercised through the records that reference them.
+
+- Require positive and negative fixtures for schemas.
+- Verify expected failure keywords and instance paths.
+- Verify that unknown schema identifiers fail closed.
+- Verify that references between schemas resolve.
+- Verify deterministic schema compilation.
+
+Acceptance: the example schemas and validation API have complete passing and failing fixture coverage.
+
+### C1.8 — Canonical JSON (`validated`)
+
+- Serialize object keys in a stable order while preserving array order.
+- Reject unsupported values, including `undefined`, functions and non-finite numbers.
+- Emit UTF-8 with normalized newlines.
+- Define duplicate-key behavior when parsing raw JSON.
+
+Acceptance: logically identical objects produce identical bytes and SHA-256 hashes.
+
+### C1.9 — Streaming JSON Lines (`validated`)
+
+- Read one JSON value per line and write canonical JSON values.
+- Process records without loading a complete dataset into memory.
+- Include line numbers in parsing and validation errors.
+- Enforce strict UTF-8/LF framing, reject blank lines, and require a final LF.
+- Accept valid noncanonical input JSON while rejecting duplicate object keys; always emit canonical JSON.
+- Bound each encoded record to a configurable limit (16 MiB by default).
+- Allow validation during streaming reads and writes.
+
+Acceptance: a large generated fixture is processed with bounded memory and deterministic output.
+
+### C1.10 — Hashing and deterministic gzip (`validated`)
+
+#### C1.10a — V1 in-memory deterministic gzip metadata (`validated`)
+
+- Compress already-framed bytes with fixed gzip settings and normalized metadata.
+- Calculate a lowercase hexadecimal SHA-256 digest over the compressed bytes.
+- Record compressed byte size and the caller-supplied entry count.
+- Test byte-for-byte reproducibility, header normalization and decompression.
+
+Acceptance: two runs over identical inputs produce identical compressed bytes, sizes and hashes.
+
+#### C1.10b — Streaming hashing and compression (`validated`)
+
+- Calculate SHA-256 while streaming.
+- Normalize gzip metadata before writing or hashing compressed bytes.
+- Integrate with C1.9 bounded-memory JSON Lines processing and count entries during the stream.
+
+Acceptance: large inputs are compressed and hashed with bounded memory and deterministic output.
+
+### C1.11 — Source-manifest boundary (`validated`)
+
+Define the technical contract for describing one pinned upstream release. A source manifest identifies exactly what was acquired and records its provider, release identifier, locator, checksum, licence review state and profile eligibility. It does not contain normalized plant assertions.
+
+Acceptance: source manifests can be validated and referenced by stable identifiers without implementing a real source adapter.
+
+### C1.12 — Importer boundary and run manifest (`validated`)
+
+Define the interface for deterministic importers without implementing source-specific transformations. An importer converts a pinned source release into normalized assertions while preserving original record identifiers, locators, values, rights and unresolved mappings.
+
+An importer run manifest records:
+
+- importer name and version;
+- input source-manifest identifier and checksum;
+- relevant configuration;
+- output checksums and record counts;
+- warnings, rejected records and unresolved mappings;
+- tool versions required for reproducibility.
+
+The source manifest describes the input. The importer run manifest describes one transformation of that input.
+
+The shared runner validates the source manifest, verifies upstream and derived inputs, validates each
+declared output record, and streams canonical JSONL while calculating hashes, byte sizes and counts. A
+completed run manifest is schema-validated and includes semantic configuration, input provenance, tool
+versions and output descriptors. Detailed warnings, rejected records and unresolved mappings are stored
+in a diagnostics JSONL output and summarized in the manifest. Fatal runs return an error trace and publish
+no failed-run manifest. The GROW adapter uses this runner; its staging candidates remain unreviewed and
+unmapped records are not converted to assertions.
+
+Acceptance: a fixture importer and GROW run through the shared boundary; manifests and outputs validate,
+two identical runs produce identical bytes, and fatal runs do not publish partial outputs or manifests.
+
+## Local-validation track
+
+The local-validation track is a deliberately smaller path for validating the Hortinis domain and product
+behavior before the complete catalog foundation and the Hortinis foundation readiness gate are complete.
+It produces a real ADR-0014-shaped artifact, but not a publishable `fr-mvp` release.
+
+### V1 — Local validation artifact (`planned`)
+
+V1 uses only the following C1 capabilities:
+
+- C1.5 schema compilation;
+- C1.6 validation API;
+- critical positive and negative C1.7 fixtures;
+- C1.8 canonical JSON;
+- the essential C1.10a gzip, SHA-256, byte-size and entry-count behavior; and
+- a minimal C1.11 source-manifest contract.
+
+V1 also requires the minimum catalog-specific contracts and curated data described by its increments
+below. It is not complete merely because the reduced C1 primitives exist.
+
+The following remain outside the V1 gate and are required later for a production release:
+
+- C1.4 continuous integration;
+- complete C1.7 conformance coverage;
+- C1.9 bounded-memory streaming;
+- the generic C1.12 importer and run-manifest abstraction;
+- source download and large-archive adapters;
+- multi-source reconciliation and full curation; and
+- release publication and production release gates.
+
+V1 output is labelled `dev-validation`, stays out of ordinary Git history, and must not be represented as
+the first `fr-mvp` release.
+
+#### V1.1 — Minimum consumer contracts (`validated`)
+
+- Depends on: C1.5, C1.6 and the critical C1.7 fixture capability.
+- Scope: define the release-manifest, artifact descriptor, taxon, plant-concept, localized-name,
+  cultivation-context, cultivation-rule, evidence-reference, source, licence, attribution and review
+  schemas required by the first Hortinis test.
+- Excludes: broad cultivar coverage, rich relationship contracts, threats, images and complete schema
+  compatibility evolution.
+- Acceptance: Hortinis can pin the language-neutral schemas and validate positive, negative, missing-field,
+  unknown-schema and unsupported-schema-major fixtures without importing catalog implementation code.
+
+#### V1.2 — Curated validation dataset (`in progress`)
+
+- Depends on: V1.1 and the accepted `dev-validation` scope from Hortinis P0.7a.
+- Scope: author the P0.7a `dev-validation` scenario dataset: a generic tomato, the `Marmande` and
+  `Montfavet H 63-5 F1` cultivars, and lettuce as a cool-season/direct-sowing representative. Add the
+  assertion and cultivar authoring contracts, evidence-backed identities and names, reusable contexts,
+  and reviewed generic and cultivar-scoped sowing or planting-window rules.
+- Acceptance: every assertion has a stable opaque identifier, source release, source record identifier,
+  locator, original value where normalization occurred, rights decision and review state; cultivar facts
+  never widen to the generic plant concept; unresolved mappings and contradictory values remain explicit;
+  the tracked dataset validates against the authoring contracts and its cross-record references resolve.
+
+#### V1.3 — Local artifact builder (`planned`)
+
+- Depends on: V1.2, C1.8 and the essential C1.10a behavior.
+- Scope: validate the curated inputs, compile consumer projections in memory, serialize canonical JSONL,
+  produce deterministic gzip output, calculate SHA-256, byte size and entry count, and emit a flat local
+  artifact containing `manifest.json`, versioned schemas, chunks, source metadata and licence/attribution
+  metadata.
+- Excludes: streaming, source download adapters, generic importer orchestration, GitHub Releases and
+  production publication gates.
+- Acceptance: two local builds from identical inputs produce identical entry and chunk bytes; every
+  manifest reference resolves within the artifact; the artifact validates against the finalized C2 consumer
+  contracts.
+
+#### V1.4 — Hortinis conformance handoff (`planned`)
+
+- Depends on: V1.3.
+- Scope: provide the generated local artifact for explicit selection, the versioned schemas Hortinis must
+  pin, and small tracked valid, corrupt-hash, incomplete-artifact, invalid-entry and unsupported-version
+  fixtures.
+- Acceptance: the full generated artifact remains outside ordinary Git history; Hortinis commits only the
+  pinned contracts and small conformance fixtures; both repositories identify the same catalog schema and
+  fixture versions.
+
+## Catalog-specific sequence
+
+Production catalog-specific implementation begins after the generic C1 primitives and boundaries are
+validated. The V1 local-validation track may begin after its reduced gate above.
+
+1. **C2 — Domain contracts:** define separate authoring and consumer contracts for taxonomy, plant concepts, cultivar groups and cultivars; localized names; plant facts; contexts and geography; cultivation rules; relationships; provenance, rights and review; release manifests and homogeneous JSONL chunks. Add positive and negative conformance fixtures.
+2. **C3/C4 — Four-source main track:** implement the ordered tasks in [four-source-curation-plan.md](four-source-curation-plan.md), beginning with qualified keys and generalized V1 manifests, then source preparation, WFO-first reconciliation, TAXREF localization, integrated packets, decisions and readiness.
+3. **C5 — Release construction and publishing:** compile accepted data into deterministic JSONL.gz chunks, produce release, source, licence and attribution manifests, run build and licence gates, compare two builds, and publish immutable GitHub Release assets.
+
+#### C3.1 — WFO snapshot and GROW name-candidate reconciliation (`in progress`)
+
+- Pin the World Flora Online Plant List 2026-06 `_DwC_backbone_R.zip` archive and record its official
+  locator, release, publisher-declared checksum and size, and CC0 evidence.
+- Keep the archive in ignored `.cache/source-inputs/wfo/2026-06/`; do not vendor the 121.7 MB archive.
+- Stream `classification.csv` from the local ZIP; fail closed on missing files, checksum/size mismatch,
+  unsupported CSV shape, missing fields and duplicate WFO identifiers.
+- Compare every pinned GROW scientific name using NFC, trim and whitespace-collapse only. Stage accepted,
+  synonym, ambiguous, unplaced, unresolved-status and unmatched outcomes without selecting an ambiguous
+  alternative or mapping a GROW record to a catalog subject.
+- Restrict WFO staging rows to matched names, accepted-name targets, their synonyms and genus/family
+  context. Emit deterministic candidate/taxonomy/diagnostic JSONL and a run manifest beneath
+  `.cache/import-runs/wfo/`; do not write consumer artifacts.
+- Keep Hortinis taxa, scientific names, plant concepts, cultivar groups and cultivars distinct. A future
+  review can author release-scoped WFO crosswalks; WFO upgrades require explicit crosswalk supersession.
+- Add fixture-only tests; basic CI must not download the full WFO snapshot.
+
+Acceptance: formatting, lint, typecheck, tests, build and `pnpm import:grow` pass; the WFO unit suite
+covers exact accepted and synonym candidates, ambiguity, unmatched names, malformed CSV, duplicate GROW
+names and deterministic outcomes. A full-snapshot run is validated separately once the ignored archive
+is available locally.
+
+#### C3/C4 — Four-source curation main track (`planned`)
+
+The [four-source curation main track](four-source-curation-plan.md) is now the only active implementation
+sequence for this work. It supersedes the former broad P1–P7 sequence and the planned portion of the
+GROW/WFO workflow document. The existing GROW/WFO implementation remains the regression base and its
+validated read-only, validation and transactional behavior must continue to pass as the shared implementation
+is generalized.
+
+The main track updates V1 contracts in place; it does not introduce a V2 schema or a permanent legacy
+compatibility branch. WFO remains the botanical identity backbone. TAXREF supplies French localization and
+territory/status enrichment after WFO review. C5 receives only explicitly reviewed authoring records.
+
+The release manifest is the consumer-facing acquisition entry point. It records catalog and schema versions, profile, minimum consumer version, required and optional artifacts, counts, sizes, hashes and references to metadata. Its schema belongs to C2; producing populated manifests and applying profile, rights, supersession and inheritance gates belongs to C5. Publishing is deliberately excluded from basic CI.
+
+## C2 contract acceptance
+
+C2 is validated when each authored input and consumer record family has an identified JSON Schema; consumer
+JSONL chunks declare exactly one record schema; provenance and rights reviews remain resolvable; and cultivar
+inheritance can be represented without changing record scope or inferring supersession. Calendar, frost-
+relative, soil-temperature and GDD timings have explicit shapes and units. Every non-definition schema has
+positive and negative compiled-registry fixtures, and the tracked validation dataset passes schema plus
+cross-record semantic checks.
+
+The consumer compatibility policy and populated catalog artifact are deliberately outside C2. The active
+four-source track owns in-development V1 contract updates and authoring migration fixtures; consumer
+projection/build behavior remains implemented in V1.3/C5.

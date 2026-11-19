@@ -1,0 +1,16 @@
+{
+  "operation": "harvest-timing",
+  "part": "tuber",
+  "purpose": "Storage harvest",
+  "guidance": "Allow the skin to set before lifting.",
+  "preparation": ["Remove tops at the desired tuber size"],
+  "timing": [
+    {
+      "role": "time-to-harvest",
+      "start": "top-removal",
+      "end": "harvest",
+      "duration": { "unit": "wk", "minimum": 2, "maximum": 2 },
+      "qualifier": "approximate"
+    }
+  ]
+}

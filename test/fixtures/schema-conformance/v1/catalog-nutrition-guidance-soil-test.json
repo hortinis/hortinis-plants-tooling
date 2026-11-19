@@ -1,0 +1,10 @@
+{
+  "evaluation": "source-guidance-only",
+  "relationship": "independent",
+  "actions": [
+    {
+      "action": "base-fertilization-on-soil-test",
+      "prerequisites": ["soil-test"]
+    }
+  ]
+}

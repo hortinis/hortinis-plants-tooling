@@ -1,0 +1,7 @@
+{
+  "id": "fixture-growing-type",
+  "kind": "growing-type",
+  "status": "active",
+  "parentPlantConceptId": "fixture-generic",
+  "evidenceReferenceIds": ["fixture-evidence"]
+}

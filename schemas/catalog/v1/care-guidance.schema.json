@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:care-guidance",
+  "title": "Source-specific plant care actions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["groups", "evaluation"],
+  "properties": {
+    "groups": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/group" }
+    },
+    "evaluation": { "const": "observation-dependent" },
+    "applicabilityPath": {
+      "$ref": "urn:hortinis:plants:schema:v1:establishment-guidance#/properties/applicabilityPath"
+    },
+    "sourceSetting": { "$ref": "#/$defs/text" },
+    "qualifications": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/text" }
+    }
+  },
+  "$defs": {
+    "text": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+    },
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relationship", "actions"],
+      "properties": {
+        "relationship": { "enum": ["independent", "alternatives", "sequence"] },
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/action" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "relationship": { "enum": ["alternatives", "sequence"] }
+            }
+          },
+          "then": {
+            "type": "object",
+            "properties": { "actions": { "minItems": 2, "type": "array" } }
+          }
+        }
+      ]
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "strength", "target"],
+      "properties": {
+        "action": {
+          "enum": [
+            "install-support",
+            "train",
+            "formative-prune",
+            "maintenance-prune",
+            "renewal-prune",
+            "deadhead",
+            "pinch",
+            "thin",
+            "remove-spent",
+            "remove-damaged",
+            "retain-growth",
+            "divide",
+            "hill",
+            "limit-harvest",
+            "cease-deadheading",
+            "mulch",
+            "prevent-weeds",
+            "remove-weeds",
+            "consult-for-weed-control",
+            "cultivate",
+            "split-cloves",
+            "avoid-damage",
+            "rotate-crop",
+            "wear-protection",
+            "incorporate",
+            "plant",
+            "leave-in-ground",
+            "protect-from-freeze",
+            "harvest",
+            "contain-spread",
+            "intersow",
+            "force"
+          ]
+        },
+        "strength": {
+          "enum": [
+            "required",
+            "recommended",
+            "optional",
+            "prohibited",
+            "unnecessary"
+          ]
+        },
+        "target": { "$ref": "#/$defs/text" },
+        "purpose": { "$ref": "#/$defs/text" },
+        "method": { "$ref": "#/$defs/text" },
+        "tool": { "$ref": "#/$defs/text" },
+        "cutPosition": { "$ref": "#/$defs/text" },
+        "material": { "$ref": "#/$defs/text" },
+        "placement": { "$ref": "#/$defs/text" },
+        "frequency": { "$ref": "#/$defs/text" },
+        "allOfConditions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/text" }
+        },
+        "anyOfConditions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/text" }
+        },
+        "allOfTiming": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:hortinis:plants:schema:v1:establishment-guidance#/$defs/timing"
+          }
+        },
+        "anyOfTiming": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:hortinis:plants:schema:v1:establishment-guidance#/$defs/timing"
+          }
+        },
+        "dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["measure", "unit", "value", "relation"],
+            "properties": {
+              "measure": {
+                "enum": [
+                  "spacing",
+                  "height",
+                  "depth",
+                  "thickness",
+                  "distance",
+                  "temperature",
+                  "length",
+                  "buds",
+                  "leaves"
+                ]
+              },
+              "unit": {
+                "enum": ["cm", "mm", "m", "in", "ft", "Cel", "degF", "count"]
+              },
+              "value": { "type": "number" },
+              "relation": {
+                "enum": ["exact", "approximate", "maximum", "minimum"]
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "type": "object",
+                  "properties": { "measure": { "const": "temperature" } }
+                },
+                "then": {
+                  "type": "object",
+                  "properties": { "unit": { "enum": ["Cel", "degF"] } }
+                }
+              },
+              {
+                "if": {
+                  "type": "object",
+                  "properties": { "measure": { "enum": ["buds", "leaves"] } }
+                },
+                "then": {
+                  "type": "object",
+                  "properties": {
+                    "unit": { "const": "count" },
+                    "value": { "type": "integer", "minimum": 1 }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "type": "object",
+                  "properties": {
+                    "measure": {
+                      "enum": [
+                        "spacing",
+                        "height",
+                        "depth",
+                        "thickness",
+                        "distance",
+                        "length"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "type": "object",
+                  "properties": {
+                    "unit": { "enum": ["cm", "mm", "in", "m", "ft"] },
+                    "value": { "type": "number", "exclusiveMinimum": 0 }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "methodKind": {
+          "enum": [
+            "cane",
+            "wall-tie",
+            "pergola-or-arch",
+            "anchored-wires",
+            "post-and-wire",
+            "stake",
+            "climbing-support",
+            "hand-pull",
+            "shallow-cultivation"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:taxon",
+  "title": "Hortinis catalog taxon",
+  "type": "object",
+  "required": ["id", "status", "scientificName", "evidenceReferenceIds"],
+  "properties": {
+    "id": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "status": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/catalogStatus"
+    },
+    "scientificName": { "type": "string", "minLength": 1 },
+    "taxonRank": {
+      "type": "string",
+      "enum": [
+        "kingdom",
+        "phylum",
+        "class",
+        "order",
+        "family",
+        "genus",
+        "subgenus",
+        "section",
+        "species",
+        "subspecies",
+        "variety",
+        "subvariety",
+        "form",
+        "cultivar-group",
+        "unranked",
+        "other"
+      ]
+    },
+    "parentTaxonId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "replacementTaxonId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "evidenceReferenceIds": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/identifierList"
+    }
+  }
+}

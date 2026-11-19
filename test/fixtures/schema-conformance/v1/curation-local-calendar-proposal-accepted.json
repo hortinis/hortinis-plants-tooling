@@ -1,0 +1,118 @@
+{
+  "revision": 1,
+  "status": "in progress",
+  "curatorApproval": {
+    "status": "accepted"
+  },
+  "commercialRelease": "blocked",
+  "inventoryFingerprint": "45fca60533b2e78961fd82b2b7bb8247b0ca8dc139bb5afe722b73400c5fba0b",
+  "geography": {
+    "name": "Saint-Étienne, Loire, France",
+    "communeCode": "42218",
+    "coverage": "City-level context for the commune. Unknown garden elevation. Open, in-ground home gardens with local observations; exclude protected production and do not extend to the Métropole or Loire département.",
+    "limitations": "La Purinière is an in-commune reference point, not the elevation or air temperature of a particular garden. Bouthéon samples the lower Forez plain. Higher, exposed, shaded or cold-air pooling plots and heavy wet soil can delay establishment; sheltered urban plots and sunny slopes can differ. No elevation correction, frost percentile, soil-temperature forecast, irrigation need or current-year forecast is inferred."
+  },
+  "evidence": {
+    "la-puriniere": {
+      "source": "Météo-France",
+      "record": "42218011",
+      "locator": "p. 1, station header; mean minima, threshold-day counts, daily extremes, precipitation and reference-period footnotes",
+      "url": "https://donneespubliques.meteofrance.fr/FichesClim/FICHECLIM_42218011.pdf",
+      "release": "Edition 2025-06-06",
+      "observedAt": "2026-11-15",
+      "capture": "reference-only",
+      "observations": "La Purinière, 640 m. Station statistics 2002–2020 despite the product header; extremes June 2002–June 2025. Mean daily minimum 5.8°C in April, 9.1°C in May and 13.1°C in June. Threshold days at or below 0°C average 1.5 in April and 1.3 in October. The sheet gives 0.1°C as the May record minimum and shows recurring late-summer heat. Rainfall statistics support checking wet beds rather than assuming spring soil is workable.",
+      "rights": {
+        "status": "in progress",
+        "commercialUseAllowed": null,
+        "notes": "The data.gouv.fr Fiches climatologiques listing declares Licence Ouverte 2.0, while this PDF expressly restricts redistribution and derived products. Reconcile terms for the exact release or recompute from the separately open daily dataset with attribution. No commercial clearance recorded.",
+        "references": [
+          "https://www.data.gouv.fr/datasets/fiches-climatologiques",
+          "https://www.data.gouv.fr/datasets/donnees-climatologiques-de-base-quotidiennes"
+        ]
+      }
+    },
+    "boutheon": {
+      "source": "Météo-France",
+      "record": "42005001",
+      "locator": "p. 1, station header; temperature threshold counts and record minima",
+      "url": "https://donneespubliques.meteofrance.fr/FichesClim/FICHECLIM_42005001.pdf",
+      "release": "1991–2020 climatological sheet, records through 2025-06-02",
+      "observedAt": "2026-11-15",
+      "capture": "reference-only",
+      "observations": "Bouthéon, 395 m, 1991–2020 statistics. Days at or below 0°C average 2.9 in April and 0.1 in May. The longer extreme series includes freezing in June and September. Lower elevation does not establish lower frost risk for each night or plot.",
+      "rights": {
+        "status": "in progress",
+        "commercialUseAllowed": null,
+        "notes": "The data.gouv.fr Fiches climatologiques listing declares Licence Ouverte 2.0, while this PDF expressly restricts redistribution and derived products. Reconcile terms for the exact release or recompute from the separately open daily dataset with attribution. No commercial clearance recorded.",
+        "references": [
+          "https://www.data.gouv.fr/datasets/fiches-climatologiques",
+          "https://www.data.gouv.fr/datasets/donnees-climatologiques-de-base-quotidiennes"
+        ]
+      }
+    },
+    "pea": {
+      "source": "Royal Horticultural Society",
+      "record": "peas",
+      "locator": "Types of peas; Preparing the ground; Sowing outdoors; Planting",
+      "url": "https://www.rhs.org.uk/vegetables/peas/grow-your-own",
+      "release": "Undated advice page",
+      "observedAt": "2026-11-15",
+      "capture": "reference-only",
+      "observations": "The pea guide includes mangetout. The outdoor seed route uses measured soil at least 10°C; its transplant route uses hardened plants and has separate criteria.",
+      "rights": {
+        "status": "in progress",
+        "commercialUseAllowed": null,
+        "notes": "No applicable open licence identified for this advice page. The RHS Heritage Catalogue terms have a different scope. Commercial reuse of the adapted recommendation needs a claim-specific decision or alternative evidence. No source prose or media archived.",
+        "references": [
+          "https://www.rhs.org.uk/about-us/what-we-do/policies/heritage-interpretation/terms-and-conditions"
+        ]
+      }
+    }
+  },
+  "qualifiers": {
+    "workable": "Use a workable, drained garden bed. Check the bed itself and wait if frozen or waterlogged.",
+    "sunny-sheltered": "Use a warm, sunny, sheltered outdoor site.",
+    "season-remaining": "Check that sufficient growing time remains for the cultivar and intended harvest before autumn cold. No universal endpoint is inferred."
+  },
+  "identities": [
+    {
+      "basis": "pc_4a2a06d5-9571-42ec-b936-9dfb496dcf4d",
+      "label": "Garden pea",
+      "scientificName": "Lathyrus oleraceus Lam.",
+      "kind": "generic",
+      "rationale": "Use the pinned packet taxonomic interpretation. Horticultural source uses pea, including mangetout, as its crop coverage.",
+      "identityClaimIds": [
+        "pc_04e2f816-063f-4dac-94c7-5eba557c19c8",
+        "pc_3b885807-b93b-419e-93e5-54bea77cd26a"
+      ]
+    }
+  ],
+  "existingSubjectMappings": [],
+  "windows": [
+    {
+      "claims": ["pc_4a2a06d5-9571-42ec-b936-9dfb496dcf4d"],
+      "action": "direct_sow",
+      "season": "spring-to-early-summer",
+      "requirements": ["workable", "sunny-sheltered", "season-remaining"],
+      "threshold": {
+        "medium": "soil",
+        "operator": "at-least",
+        "value": 10,
+        "unit": "Cel"
+      },
+      "evidence": ["la-puriniere", "boutheon", "pea"],
+      "method": "Use the independently sourced direct-sow soil criterion. Spring temperatures and wet conditions support measuring the garden bed before acting.",
+      "confidence": "moderate",
+      "limitations": "Seed route only. Transplants have different source criteria. Depth and persistence of threshold are unspecified."
+    }
+  ],
+  "bordeauxRowsSha256": "c1676713cb3f1f30f976747621aa490437b2daf93e305fb17526e3f5b6d8b984",
+  "inputPins": {
+    "inputs.json": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "baselineAssertions": {
+    "sha256": "3cf46d75c78e85c34189c8f01c9bca6930bd212e212fd92a988c8a74856bb112",
+    "ids": ["baseline-assertion"]
+  }
+}

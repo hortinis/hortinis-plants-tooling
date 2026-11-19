@@ -1,0 +1,6 @@
+{
+  "id": "fixture-growing-type",
+  "kind": "growing-type",
+  "status": "active",
+  "evidenceReferenceIds": ["fixture-evidence"]
+}

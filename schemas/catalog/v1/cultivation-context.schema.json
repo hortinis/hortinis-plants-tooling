@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:cultivation-context",
+  "title": "Hortinis catalog cultivation context",
+  "type": "object",
+  "required": ["id", "geographicScope", "growingSystem", "propagation"],
+  "properties": {
+    "id": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "geographicScope": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "geographicContextIds"],
+          "properties": {
+            "type": { "const": "specified" },
+            "geographicContextIds": {
+              "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/identifierList"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": { "type": { "const": "unknown" } }
+        }
+      ]
+    },
+    "growingSystem": {
+      "type": "string",
+      "enum": [
+        "outdoor",
+        "unheated_shelter",
+        "heated_greenhouse",
+        "indoor",
+        "indoor_or_undercover",
+        "unknown"
+      ]
+    },
+    "propagation": {
+      "type": "string",
+      "enum": [
+        "direct_sowing",
+        "transplant",
+        "vegetative",
+        "direct_sowing_or_transplant",
+        "unknown"
+      ]
+    },
+    "lifeStage": {
+      "type": "string",
+      "enum": [
+        "seed",
+        "seedling",
+        "vegetative",
+        "flowering",
+        "fruiting",
+        "harvest",
+        "dormant",
+        "unknown",
+        "germination",
+        "growing_plant"
+      ]
+    },
+    "soilOrContainer": {
+      "type": "string",
+      "enum": ["in_ground", "container", "raised_bed", "unknown"]
+    },
+    "irrigation": {
+      "type": "string",
+      "enum": ["irrigated", "rain_fed", "unknown"]
+    },
+    "protection": {
+      "type": "string",
+      "enum": ["none", "row_cover", "cold_frame", "cloche", "unknown"]
+    },
+    "plantingSeason": { "enum": ["spring", "summer", "autumn", "winter"] },
+    "productionSetting": { "enum": ["home-garden", "commercial-field"] },
+    "regulatorySpecification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "designation",
+        "scheme",
+        "jurisdiction",
+        "version",
+        "publicationDate"
+      ],
+      "properties": {
+        "designation": { "type": "string", "minLength": 1 },
+        "scheme": { "enum": ["EU-PDO", "EU-PGI"] },
+        "jurisdiction": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+        },
+        "version": { "type": "string", "minLength": 1 },
+        "publicationDate": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        }
+      }
+    },
+    "applicabilityPath": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "measurementMedium": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+        },
+        "eventAnchor": { "const": "sowing" },
+        "qualifications": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+          }
+        }
+      }
+    }
+  }
+}

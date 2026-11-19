@@ -1,0 +1,152 @@
+export {
+  createValidationApi,
+  validate,
+  ValidationPipelineError,
+} from "./schema/validation-api.js";
+export type {
+  ValidationApi,
+  ValidationError,
+  ValidationPipelineErrorCode,
+  ValidationResult,
+  ValidatorRegistry,
+} from "./schema/validation-api.js";
+export {
+  CanonicalJsonError,
+  parseJsonStrict,
+  serializeCanonicalJson,
+} from "./serialization/canonical-json.js";
+export type { CanonicalJsonErrorCode } from "./serialization/canonical-json.js";
+export {
+  DEFAULT_MAX_JSON_LINE_BYTES,
+  JsonLinesError,
+  readJsonLines,
+  writeJsonLines,
+} from "./serialization/json-lines.js";
+export type {
+  JsonLineRecord,
+  JsonLinesErrorCode,
+  JsonLinesReadOptions,
+  JsonLinesWriteOptions,
+} from "./serialization/json-lines.js";
+export { compressDeterministicGzip } from "./artifact/deterministic-gzip.js";
+export { writeDeterministicGzip } from "./artifact/deterministic-gzip.js";
+export type {
+  CompressedArtifact,
+  CompressedArtifactMetadata,
+} from "./artifact/deterministic-gzip.js";
+export { writeCompressedJsonLines } from "./artifact/json-lines-gzip.js";
+export type { CompressedJsonLinesOptions } from "./artifact/json-lines-gzip.js";
+export { validateValidationDataset } from "./curation/validation-dataset.js";
+export type {
+  DatasetRecord,
+  DatasetValidationIssue,
+  ValidationDataset,
+} from "./curation/validation-dataset.js";
+export { validateGrowWfoDataset } from "./curation/grow-wfo-validation.js";
+export {
+  validateCurationDataset,
+  auditCurationDecisionLineage,
+} from "./curation/curation-validation.js";
+export type {
+  CurationOptions,
+  CurationValidationResult,
+  ValidationDimension,
+} from "./curation/curation-validation.js";
+export {
+  getCurationStatus,
+  showCurationRecord,
+} from "./curation/curation-inspection.js";
+export type {
+  CurationStatusResult,
+  CurationRecordSelector,
+  EditorialGate,
+} from "./curation/curation-inspection.js";
+export { readIntegratedReviewDraft } from "./curation/integrated-review-reader.js";
+export type { IntegratedReviewDraft } from "./curation/integrated-review-reader.js";
+export type {
+  CurationValidationIssue,
+  GrowWfoValidationOptions,
+  GrowWfoValidationResult,
+  LoadedCurationDataset,
+  RecordLocation,
+} from "./curation/grow-wfo-validation.js";
+export { migrateV1AuthoringDataset } from "./curation/migrate-v1-authoring-dataset.js";
+export type {
+  V1AuthoringMigrationOptions,
+  V1AuthoringMigrationResult,
+} from "./curation/migrate-v1-authoring-dataset.js";
+export { generateGrowWfoDrafts } from "./curation/grow-wfo-drafts.js";
+export {
+  createWfoLookupProposal,
+  lookupWfoSnapshot,
+  verifyPinnedWfoArchive,
+} from "./curation/wfo-lookup.js";
+export type {
+  WfoLookupQuery,
+  WfoLookupRecord,
+  WfoLookupResult,
+} from "./curation/wfo-lookup.js";
+export type {
+  GrowWfoDraftOptions,
+  GrowWfoDraftResult,
+} from "./curation/grow-wfo-drafts.js";
+export { generateIntegratedReviewPackets } from "./curation/integrated-review-packets.js";
+export type {
+  IntegratedReviewPacketOptions,
+  IntegratedReviewPacketResult,
+} from "./curation/integrated-review-packets.js";
+export {
+  getGrowWfoStatus,
+  readGrowWfoDrafts,
+} from "./curation/grow-wfo-status.js";
+export type {
+  CompletionGate,
+  CurationStatus,
+  GrowWfoDraftData,
+  GrowWfoStatusResult,
+} from "./curation/grow-wfo-status.js";
+export { showGrowWfoRecord } from "./curation/grow-wfo-show.js";
+export type { GrowWfoRecordView } from "./curation/grow-wfo-show.js";
+export { runImporter } from "./importer/runner.js";
+export { ImporterRunError } from "./importer/errors.js";
+export type {
+  ImportContext,
+  ImportEvent,
+  ImportInputResource,
+  ImportOutputDefinition,
+  ImportOutputResult,
+  ImportOutputRole,
+  ImporterDefinition,
+  ImporterRunOptions,
+  ImporterRunResult,
+} from "./importer/types.js";
+export type { ImporterRunErrorCode } from "./importer/errors.js";
+export { importGrowSource } from "./adapters/grow/adapter.js";
+export type {
+  GrowImportOptions,
+  GrowImportResult,
+} from "./adapters/grow/adapter.js";
+
+export {
+  projectCultivationRules,
+  matchesConditionalCultivationRule,
+} from "./domain/cultivation-rule-projection.js";
+
+export { projectSiteFacts } from "./domain/site-fact-projection.js";
+export { projectRotationClassifications } from "./domain/rotation-classification-projection.js";
+
+export { projectCareGuidance } from "./domain/care-guidance-projection.js";
+export { projectHarvestGuidance } from "./domain/harvest-guidance-projection.js";
+export { projectWateringGuidance } from "./domain/watering-guidance-projection.js";
+export { projectEstablishmentGuidance } from "./domain/establishment-guidance-projection.js";
+export { projectTemperatureGuidance } from "./domain/temperature-guidance-projection.js";
+
+export { projectNutritionGuidance } from "./domain/nutrition-guidance-projection.js";
+export { projectPollinationGuidance } from "./domain/pollination-guidance-projection.js";
+
+export { projectCatalog } from "./domain/catalog-projection.js";
+export { assertionSupersession } from "./domain/assertion-supersession.js";
+export {
+  buildCatalogCandidate,
+  ingestCatalogCandidate,
+} from "./artifact/catalog-candidate.js";

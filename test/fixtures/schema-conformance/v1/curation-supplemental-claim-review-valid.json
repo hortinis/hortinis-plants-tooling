@@ -1,0 +1,255 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "review-tomato-rhs-2026-10-07",
+  "status": "validated",
+  "catalogAdmission": "planned",
+  "subject": {
+    "type": "plant-concept",
+    "id": "c4-plant-concepts-9db246485c8aa7afd8c780b162ee13f5"
+  },
+  "capture": {
+    "kind": "curator-review-extracts",
+    "observedAt": "2026-10-07",
+    "originalDocumentsArchived": false,
+    "notes": "Checksums pin local structured review extracts, not the complete original RHS pages or PDF. The release identifier names this Hortinis review capture, not a claimed RHS publisher release."
+  },
+  "source": {
+    "id": "c4-sources-53ad424b79a3894cad1b1e7ea0c1d87d",
+    "name": "Royal Horticultural Society cultivation guidance",
+    "publisher": "Royal Horticultural Society",
+    "homepage": "https://www.rhs.org.uk"
+  },
+  "licence": {
+    "id": "c4-licences-a3dbd7b1f50c6407faf78393a0a6a9c9",
+    "name": "RHS rights — unreviewed",
+    "expression": "LicenseRef-RHS-Rights-Unreviewed",
+    "referenceLocator": "https://www.rhs.org.uk/plants/293619/solanum-lycopersicum/details",
+    "commercialUse": "unknown",
+    "attributionRequired": true,
+    "requiredNotice": "Retain Royal Horticultural Society source titles and locators. This is a conservative review attribution policy, not a verified RHS licensing term."
+  },
+  "sourceManifest": {
+    "id": "c4-source-manifests-9cb6b10c4f48b4c58137a38ad27b29c0",
+    "provider": {
+      "id": "c4-sources-53ad424b79a3894cad1b1e7ea0c1d87d",
+      "name": "Royal Horticultural Society"
+    },
+    "release": {
+      "identifier": "hortinis-rhs-review-extracts:2026-10-07"
+    },
+    "resources": [
+      {
+        "locator": "tomato-profile.extract.json",
+        "checksum": {
+          "algorithm": "sha256",
+          "value": "adb7df80e45e63ca3e07a1e9183c0b84760450219b947d873d95a80cb360811c"
+        },
+        "byteSize": 498,
+        "mediaType": "application/json"
+      },
+      {
+        "locator": "hardiness-table.extract.json",
+        "checksum": {
+          "algorithm": "sha256",
+          "value": "a7a4356a03df933f90e07046848e39141477371988e0773bfc7d0ecd3d4ac333"
+        },
+        "byteSize": 674,
+        "mediaType": "application/json"
+      },
+      {
+        "locator": "planting-out.extract.json",
+        "checksum": {
+          "algorithm": "sha256",
+          "value": "4ec61e2b8d0f13eca47ff4366b66abc57969a43b13d10abc7c9de301a947c3ae"
+        },
+        "byteSize": 741,
+        "mediaType": "application/json"
+      }
+    ],
+    "licenceReview": {
+      "status": "unreviewed",
+      "declaredLicence": "No redistribution grant established",
+      "evidenceLocator": "https://www.rhs.org.uk/plants/293619/solanum-lycopersicum/details",
+      "notes": "Only structured review extracts are captured. Neither webpage availability nor file-level rights establish upstream redistribution permission."
+    },
+    "profileEligibility": [
+      {
+        "profile": "commercial",
+        "decision": "pending-review",
+        "reason": "RHS redistribution rights have not been cleared."
+      }
+    ]
+  },
+  "reviews": [
+    {
+      "id": "c4-reviews-0a13c90c001569df7b990e245da09db0",
+      "purpose": "content",
+      "status": "accepted",
+      "reviewedAt": "2026-10-07T05:53:31Z",
+      "reviewerId": "curator_julien",
+      "notes": "Curator explicitly approved both RHS claims after reviewing the generic tomato H1C profile, RHS scale and planting-out advice. Keep hardiness classification and preferred planting conditions separate; retain UK context. Preserve GROW Tender independently as qualitative evidence. Content approval does not authorize redistribution or imply catalog admission."
+    },
+    {
+      "id": "c4-reviews-6abb094cedba4cef5a15d9495820d363",
+      "purpose": "rights",
+      "status": "accepted",
+      "reviewedAt": "2026-10-07T05:53:31Z",
+      "reviewerId": "agent_codex",
+      "notes": "Administrative review records a pending rights decision only. No RHS redistribution licence or upstream content rights have been verified."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "c4-evidence-references-43e15db2a4e7e3acfd4db1552bc98ac4",
+      "sourceRecordKey": {
+        "recordId": "293619",
+        "source": {
+          "sourceId": "c4-sources-53ad424b79a3894cad1b1e7ea0c1d87d",
+          "sourceManifestId": "c4-source-manifests-9cb6b10c4f48b4c58137a38ad27b29c0",
+          "sourceReleaseId": "hortinis-rhs-review-extracts:2026-10-07"
+        }
+      },
+      "locator": "https://www.rhs.org.uk/plants/293619/solanum-lycopersicum/details#section=Hardiness",
+      "normalization": {
+        "originalValue": "H1C",
+        "method": "Preserved explicit RHS species-profile rating."
+      },
+      "rights": {
+        "licenceId": "c4-licences-a3dbd7b1f50c6407faf78393a0a6a9c9",
+        "decision": "pending-review",
+        "reason": "RHS redistribution rights and upstream rights are unreviewed. Public access and review approval do not constitute a licence grant.",
+        "reviewId": "c4-reviews-6abb094cedba4cef5a15d9495820d363"
+      }
+    },
+    {
+      "id": "c4-evidence-references-05c79ee7664227bf8f77648cf8f68d92",
+      "sourceRecordKey": {
+        "recordId": "plant-finder-2013-hardiness-table",
+        "source": {
+          "sourceId": "c4-sources-53ad424b79a3894cad1b1e7ea0c1d87d",
+          "sourceManifestId": "c4-source-manifests-9cb6b10c4f48b4c58137a38ad27b29c0",
+          "sourceReleaseId": "hortinis-rhs-review-extracts:2026-10-07"
+        }
+      },
+      "locator": "https://www.rhs.org.uk/plants/pdfs/plant-finder/2013/008-009_plant_finder_2013.pdf#page=2",
+      "normalization": {
+        "originalValue": {
+          "rating": "H1c",
+          "temperatureRange": "5 to 10",
+          "unit": "°C"
+        },
+        "method": "Canonicalize rating case to H1C and express its explicitly defined band as 5–10 Cel. Retain RHS classification meaning and UK context.",
+        "unit": "Cel"
+      },
+      "rights": {
+        "licenceId": "c4-licences-a3dbd7b1f50c6407faf78393a0a6a9c9",
+        "decision": "pending-review",
+        "reason": "RHS redistribution rights and upstream rights are unreviewed. Public access and review approval do not constitute a licence grant.",
+        "reviewId": "c4-reviews-6abb094cedba4cef5a15d9495820d363"
+      }
+    },
+    {
+      "id": "c4-evidence-references-96833c86b78b7a6cc26244cbfd61d7ef",
+      "sourceRecordKey": {
+        "recordId": "when-to-plant-out-tender-plants-avoiding-late-frosts",
+        "source": {
+          "sourceId": "c4-sources-53ad424b79a3894cad1b1e7ea0c1d87d",
+          "sourceManifestId": "c4-source-manifests-9cb6b10c4f48b4c58137a38ad27b29c0",
+          "sourceReleaseId": "hortinis-rhs-review-extracts:2026-10-07"
+        }
+      },
+      "locator": "https://www.rhs.org.uk/garden-jobs/when-to-plant-out-tender-plants-avoiding-late-frosts#section=Check-temperatures-and-forecasts-before-planting",
+      "normalization": {
+        "originalValue": "Tomatoes do better if nights are above 10°C.",
+        "method": "Preserve the strict above-10°C tomato night-temperature preference separately from general above-7°C guidance. Retain hardening-off and forecast context.",
+        "unit": "Cel"
+      },
+      "rights": {
+        "licenceId": "c4-licences-a3dbd7b1f50c6407faf78393a0a6a9c9",
+        "decision": "pending-review",
+        "reason": "RHS redistribution rights and upstream rights are unreviewed. Public access and review approval do not constitute a licence grant.",
+        "reviewId": "c4-reviews-6abb094cedba4cef5a15d9495820d363"
+      }
+    },
+    {
+      "id": "c4-evidence-references-cb3006782220730f89b688552a99f5ab",
+      "sourceRecordKey": {
+        "recordId": "293619",
+        "source": {
+          "sourceId": "c4-sources-53ad424b79a3894cad1b1e7ea0c1d87d",
+          "sourceManifestId": "c4-source-manifests-9cb6b10c4f48b4c58137a38ad27b29c0",
+          "sourceReleaseId": "hortinis-rhs-review-extracts:2026-10-07"
+        }
+      },
+      "locator": "https://www.rhs.org.uk/plants/293619/solanum-lycopersicum/details#section=Cultivation",
+      "normalization": {
+        "originalValue": "Move outside once all risk of frost has passed.",
+        "method": "Preserve the condition that frost risk has passed."
+      },
+      "rights": {
+        "licenceId": "c4-licences-a3dbd7b1f50c6407faf78393a0a6a9c9",
+        "decision": "pending-review",
+        "reason": "RHS redistribution rights and upstream rights are unreviewed. Public access and review approval do not constitute a licence grant.",
+        "reviewId": "c4-reviews-6abb094cedba4cef5a15d9495820d363"
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "c4-supplemental-claims-1eda7c7a9a9768c2f3c5b26dfb41453d",
+      "predicate": "hardiness_rating",
+      "value": {
+        "system": "RHS",
+        "rating": "H1C",
+        "minimumTemperatureBand": {
+          "minimum": 5,
+          "maximum": 10,
+          "unit": "Cel"
+        },
+        "bandMeaning": "absolute-minimum-winter-temperature-classification",
+        "cultivationCategory": "heated_greenhouse_warm_temperate",
+        "outdoorSeason": "summer",
+        "qualification": "A UK-context rating and associated band; no exact lethal threshold is asserted."
+      },
+      "context": {
+        "geographicScope": "UK growing conditions"
+      },
+      "evidenceReferenceIds": [
+        "c4-evidence-references-43e15db2a4e7e3acfd4db1552bc98ac4",
+        "c4-evidence-references-05c79ee7664227bf8f77648cf8f68d92"
+      ],
+      "reviewId": "c4-reviews-0a13c90c001569df7b990e245da09db0"
+    },
+    {
+      "id": "c4-supplemental-claims-977a46c0fa49411bda3ba7a7d5fe4baf",
+      "predicate": "preferred_planting_out_conditions",
+      "value": {
+        "recommendation": "preferred",
+        "nightTemperature": {
+          "comparison": ">",
+          "threshold": 10,
+          "unit": "Cel"
+        },
+        "preconditions": ["hardened_off", "frost_risk_passed"],
+        "sourceContext": {
+          "generalTenderPlantGuidance": {
+            "comparison": ">",
+            "threshold": 7,
+            "unit": "Cel"
+          }
+        },
+        "qualification": "Tomato warmer-night preference; not a universal survival limit or mandatory planting threshold."
+      },
+      "context": {
+        "geographicScope": "UK source guidance",
+        "growingSystem": "outdoor",
+        "propagation": "transplant"
+      },
+      "evidenceReferenceIds": [
+        "c4-evidence-references-96833c86b78b7a6cc26244cbfd61d7ef",
+        "c4-evidence-references-cb3006782220730f89b688552a99f5ab"
+      ],
+      "reviewId": "c4-reviews-0a13c90c001569df7b990e245da09db0"
+    }
+  ]
+}

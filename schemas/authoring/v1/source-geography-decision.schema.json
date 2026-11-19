@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:authoring:v1:source-geography-decision",
+  "title": "Reviewed source geography decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "sourceLocationKey",
+    "sourceLocation",
+    "decision",
+    "reason",
+    "reviewId"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "sourceLocationKey": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/qualifiedSourceLocationKey"
+    },
+    "sourceLocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sheetCode", "country", "name", "locator"],
+      "properties": {
+        "sheetCode": {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+        },
+        "country": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "locator": { "type": "string", "minLength": 1 }
+      }
+    },
+    "decision": { "enum": ["map", "reject", "defer"] },
+    "geographicContextId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "normalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["originalCountry", "normalizedCountry", "method"],
+      "properties": {
+        "originalCountry": { "type": "string", "minLength": 1 },
+        "normalizedCountry": { "type": "string", "minLength": 1 },
+        "method": { "type": "string", "minLength": 1 }
+      }
+    },
+    "reason": { "type": "string", "minLength": 1 },
+    "reviewId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "supersedesDecisionId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "decision": { "const": "map" } },
+        "required": ["decision"]
+      },
+      "then": {
+        "required": ["geographicContextId", "normalization"],
+        "properties": {
+          "geographicContextId": true,
+          "normalization": true
+        }
+      },
+      "else": {
+        "properties": {
+          "geographicContextId": false,
+          "normalization": false
+        }
+      }
+    }
+  ]
+}

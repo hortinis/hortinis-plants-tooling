@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:review",
+  "title": "Hortinis catalog review decision",
+  "type": "object",
+  "required": ["id", "purpose", "status"],
+  "properties": {
+    "id": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "purpose": { "enum": ["content", "rights"] },
+    "status": { "enum": ["unreviewed", "accepted", "rejected", "superseded"] },
+    "reviewedAt": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/utcTimestamp"
+    },
+    "reviewerId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "notes": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+    },
+    "decisionAuthority": {
+      "type": "object",
+      "required": ["kind", "delegationReference", "delegationText"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "const": "delegated-agent" },
+        "delegationReference": { "type": "string", "minLength": 1 },
+        "delegationText": { "type": "string", "minLength": 1 }
+      }
+    },
+    "assertionSupersessions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "predecessorId",
+          "predecessorSha256",
+          "successorId",
+          "successorSha256",
+          "reason"
+        ],
+        "properties": {
+          "predecessorId": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+          },
+          "successorId": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+          },
+          "predecessorSha256": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/sha256"
+          },
+          "successorSha256": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/sha256"
+          },
+          "reason": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["decisionAuthority"],
+        "properties": { "decisionAuthority": true }
+      },
+      "then": {
+        "required": ["scope", "sourceReference", "approvedIdentityClaimKeys"],
+        "properties": {
+          "scope": { "const": "reviewed-plant-batch" },
+          "purpose": { "const": "content" },
+          "sourceReference": { "type": "string", "minLength": 1 },
+          "approvedIdentityClaimKeys": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          },
+          "quote": false
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": { "enum": ["accepted", "rejected", "superseded"] }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["reviewedAt", "reviewerId"],
+        "properties": { "reviewedAt": true, "reviewerId": true }
+      }
+    },
+    {
+      "if": {
+        "properties": { "purpose": { "const": "rights" } },
+        "required": ["purpose"]
+      },
+      "then": { "properties": { "confidence": false } }
+    }
+  ]
+}

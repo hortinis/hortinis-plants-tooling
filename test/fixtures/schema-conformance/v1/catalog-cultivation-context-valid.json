@@ -1,0 +1,9 @@
+{
+  "id": "context_fr_atlantic_outdoor_transplant",
+  "geographicScope": {
+    "type": "specified",
+    "geographicContextIds": ["france_atlantic"]
+  },
+  "growingSystem": "outdoor",
+  "propagation": "transplant"
+}

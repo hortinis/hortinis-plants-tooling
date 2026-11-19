@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:site-guidance",
+  "title": "Source-specific site guidance",
+  "description": "Each option is a conjunction. Options preserve alternative profiles or different guidance roles. Qualifications belong to their option.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["options"],
+  "properties": {
+    "options": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "minProperties": 2,
+        "required": ["role"],
+        "properties": {
+          "role": {
+            "enum": [
+              "listed",
+              "preferred",
+              "suitable",
+              "needed",
+              "reported",
+              "avoid"
+            ]
+          },
+          "light": {
+            "enum": [
+              "full_sun",
+              "sunny",
+              "direct_sun",
+              "partial_shade",
+              "dappled_shade",
+              "slight_shade",
+              "light_shade",
+              "full_shade",
+              "bright"
+            ]
+          },
+          "minimumSunHoursPerDay": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 24
+          },
+          "exposure": { "enum": ["sheltered", "open"] },
+          "warmth": { "enum": ["warm"] },
+          "humidity": { "enum": ["high"] },
+          "texture": {
+            "enum": [
+              "loam",
+              "loamy",
+              "sand",
+              "sandy",
+              "sandy_loam",
+              "silt_loam",
+              "sandy_to_silty_loam",
+              "silty",
+              "silty_sand",
+              "clay",
+              "clay_loam"
+            ]
+          },
+          "soilDescription": { "enum": ["light", "heavy"] },
+          "material": {
+            "enum": ["peat", "peat_rich", "muck", "chalk", "mineral"]
+          },
+          "substrate": { "enum": ["potting_mix", "ericaceous_potting_mix"] },
+          "selectionCriteria": {
+            "type": "array",
+            "items": { "enum": ["pond-size", "water-depth"] },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "structureType": { "enum": ["greenhouse", "polytunnel"] },
+          "setting": { "enum": ["in_ground", "container"] },
+          "drainage": {
+            "enum": ["well_drained", "freely_drained", "fast_draining"]
+          },
+          "moisture": {
+            "enum": ["moist", "moisture_retaining", "summer_moisture"]
+          },
+          "structure": { "enum": ["loose", "friable", "well_dug"] },
+          "depth": { "enum": ["deep", "shallow"] },
+          "stones": { "enum": ["stone_free", "stony"] },
+          "fertility": {
+            "enum": [
+              "fertile",
+              "moderately_fertile",
+              "poor_to_moderately_fertile"
+            ]
+          },
+          "organicMatter": {
+            "enum": ["ample", "well_rotted_added", "preferred", "high"]
+          },
+          "soilTemperature": { "enum": ["cool", "warm"] },
+          "phClass": {
+            "enum": ["acidic", "slightly_alkaline", "neutral_to_alkaline"]
+          },
+          "phRange": {
+            "$ref": "urn:hortinis:plants:schema:v1:plant-fact#/$defs/phRange"
+          },
+          "appliesWhen": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+          },
+          "qualification": {
+            "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/localizedText"
+          }
+        },
+        "dependentSchemas": {
+          "appliesWhen": { "minProperties": 3 },
+          "minimumSunHoursPerDay": {
+            "required": ["light"],
+            "properties": { "light": { "const": "full_sun" } }
+          }
+        }
+      }
+    }
+  }
+}

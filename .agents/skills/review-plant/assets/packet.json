@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "1.0.0",
+  "policyVersion": "1.0.0",
+  "id": "pr_00000000-0000-4000-8000-000000000001",
+  "revision": 1,
+  "status": "in progress",
+  "researchComplete": false,
+  "curatorApproval": null,
+  "catalogIntegration": "planned",
+  "createdAt": "2026-11-07",
+  "baseline": {
+    "commit": "Replace with actual base commit",
+    "dirty": true,
+    "notes": "Replace with actual worktree state; preserve unrelated changes."
+  },
+  "plant": {
+    "label": "Replace with assigned plant",
+    "scientificName": null,
+    "catalogSubjectId": null,
+    "targetGeography": "Metropolitan France including Corsica",
+    "scopeNotes": "Resolve identity and existing growing types before research."
+  },
+  "scopes": [
+    {
+      "id": "ps_00000000-0000-4000-8000-000000000002",
+      "label": "Replace with generic scope",
+      "kind": "generic",
+      "catalogSubjectId": null,
+      "parentScopeId": null
+    }
+  ],
+  "evidence": [],
+  "claims": [],
+  "sourceCandidateDispositions": [],
+  "coverage": [
+    {
+      "domain": "identity",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research not started."
+    },
+    {
+      "domain": "temperature",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research not started."
+    },
+    {
+      "domain": "planting",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research not started."
+    },
+    {
+      "domain": "environment",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research not started."
+    },
+    {
+      "domain": "water",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research not started."
+    },
+    {
+      "domain": "nutrition",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research not started."
+    },
+    {
+      "domain": "harvest",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research not started."
+    },
+    {
+      "domain": "care",
+      "outcome": "unresolved",
+      "claimIds": [],
+      "reason": "Research not started."
+    }
+  ],
+  "questions": [],
+  "checks": [
+    {
+      "name": "semantic review",
+      "status": "planned",
+      "details": "Incomplete starter; replace IDs and research all domains before handoff."
+    }
+  ]
+}

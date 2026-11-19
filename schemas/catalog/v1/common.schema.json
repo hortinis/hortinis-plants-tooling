@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:common",
+  "title": "Hortinis catalog shared definitions",
+  "$defs": {
+    "stableIdentifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "semanticVersion": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "schemaVersionV1": {
+      "type": "string",
+      "pattern": "^1\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "utcTimestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]+)?Z$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "safeRelativePath": {
+      "type": "string",
+      "pattern": "^(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9][A-Za-z0-9._-]*(?:/[A-Za-z0-9][A-Za-z0-9._-]*)*$"
+    },
+    "languageTag": {
+      "type": "string",
+      "pattern": "^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$"
+    },
+    "localizedText": {
+      "description": "A legacy string in its recorded language, or a pair of English and French translations.",
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        { "$ref": "#/$defs/englishFrenchText" }
+      ]
+    },
+    "englishFrenchText": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["en", "fr"],
+      "properties": {
+        "en": { "type": "string", "pattern": "\\S" },
+        "fr": { "type": "string", "pattern": "\\S" }
+      }
+    },
+    "catalogStatus": {
+      "type": "string",
+      "enum": ["active", "retired"]
+    },
+    "identifierList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/stableIdentifier" }
+    },
+    "optionalIdentifierList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/stableIdentifier" }
+    },
+    "sourceReleaseKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceId", "sourceManifestId", "sourceReleaseId"],
+      "properties": {
+        "sourceId": { "$ref": "#/$defs/stableIdentifier" },
+        "sourceManifestId": {
+          "$ref": "urn:hortinis:plants:schema:v1:source-manifest#/$defs/sourceManifestId"
+        },
+        "sourceReleaseId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "qualifiedSourceRecordKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "recordId"],
+      "properties": {
+        "source": { "$ref": "#/$defs/sourceReleaseKey" },
+        "recordId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "qualifiedSourceLocationKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "locationId"],
+      "properties": {
+        "source": { "$ref": "#/$defs/sourceReleaseKey" },
+        "locationId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "semanticSubrecordKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceRecordKey", "path"],
+      "properties": {
+        "sourceRecordKey": { "$ref": "#/$defs/qualifiedSourceRecordKey" },
+        "path": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "id"],
+            "properties": {
+              "kind": { "type": "string", "minLength": 1 },
+              "id": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "subjectReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["plant-concept", "cultivar-group", "cultivar"]
+        },
+        "id": { "$ref": "#/$defs/stableIdentifier" }
+      }
+    },
+    "jsonValue": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "boolean" },
+        { "type": "number" },
+        { "type": "string" },
+        { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+        }
+      ]
+    },
+    "quantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "unit"],
+      "properties": {
+        "value": { "type": "number" },
+        "unit": { "type": "string", "minLength": 1 }
+      }
+    },
+    "quantityRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit"],
+      "properties": {
+        "minimum": { "type": "number" },
+        "maximum": { "type": "number" },
+        "unit": { "type": "string", "minLength": 1 }
+      },
+      "anyOf": [
+        { "properties": { "minimum": true }, "required": ["minimum"] },
+        { "properties": { "maximum": true }, "required": ["maximum"] }
+      ]
+    }
+  }
+}

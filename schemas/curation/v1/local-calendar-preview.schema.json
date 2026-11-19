@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:curation:v1:local-calendar-preview",
+  "title": "Hortinis local calendar consumer review preview",
+  "$ref": "urn:hortinis:plants:schema:curation:v1:local-calendar-proposal#/$defs/consumerPreview"
+}
