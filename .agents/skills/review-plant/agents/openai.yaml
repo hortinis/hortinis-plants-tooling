@@ -1,4 +1,4 @@
 interface:
   display_name: "Review Plant Claims"
-  short_description: "Research one plant and prepare curator approval"
-  default_prompt: "Use $review-plant to research the assigned plant and save a complete claim proposal packet with a concise approval summary."
+  short_description: "Review plant data and photos for curator approval"
+  default_prompt: "Use $review-plant to review the assigned plant, select source-backed discovery data, and show the chosen photos in the curator summary."

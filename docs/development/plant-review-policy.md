@@ -15,7 +15,7 @@ Use the [review-plant skill](../../.agents/skills/review-plant/SKILL.md) for exe
 
 ## Assignment and identity
 
-Default to the generic edible plant in the repository's metropolitan-France catalog scope, including Corsica. Preserve evidence from other regions with its original geography; assess transferability rather than silently relabelling it French advice. Include existing relevant horticultural growing types; exclude named cultivars unless assigned or necessary to distinguish applicability. Resolve ambiguity from existing delivery targets, source records and taxonomy first. If multiple plausible species remain, report the ambiguity and complete only identity-independent work.
+Default to the generic edible plant in the repository's metropolitan-France catalog scope, including Corsica. Preserve evidence from other regions with its original geography; assess transferability rather than silently relabelling it French advice. Include existing relevant horticultural growing types and choose cultivars with useful comparison evidence for new reviews. Resolve ambiguity from existing delivery targets, source records and taxonomy first. If multiple plausible species remain, report the ambiguity and complete only identity-independent work.
 
 Separate taxonomic acceptance, horticultural growing types and named cultivars. A shared species does not justify merging head/leaf, determinate/indeterminate, field/greenhouse or cultivar-specific claims. Applying generic evidence to multiple types is an explicit inference; document its justification and limits. Never promote cultivar evidence into a generic fact without support.
 
@@ -36,9 +36,15 @@ Every packet must account for all eight domains, using proposed claims, justifie
 | harvest     | Duration and starting event, harvest stage/method                                   |
 | care        | Relevant supports, pruning, conditional routine care                                |
 
-Account for every in-scope candidate from pinned sources, including alternatives and exclusions. Do not re-import large archives unnecessarily; use existing adapters/packets and targeted lookups. Review identity and planting/cold coverage first because they affect MVP delivery. Pest-treatment cataloguing, images and exhaustive cultivar inventories are outside the default assignment.
+Account for every in-scope candidate from pinned sources, including alternatives and exclusions. Do not re-import large archives unnecessarily; use existing adapters/packets and targeted lookups. Review identity and planting/cold coverage first because they affect MVP delivery. Pest-treatment cataloguing and exhaustive cultivar inventories are outside the default assignment.
 
-A research session is complete when all domains and source candidates have a disposition, significant conflicts have a reasoned recommendation or explicit gap, evidence/rights limitations are visible, and the summary and packet pass the checks below. Complete research can contain unresolved claims; it does not establish C4/C5 readiness or release eligibility.
+Every new plant review includes [catalog discovery](../../.agents/skills/review-plant/references/discovery.md).
+Select the supported data, compare relevant cultivars, propose bilingual
+display text and browse memberships, and choose suitable crop and cultivar
+images. For focused updates to existing reviews, follow the requested scope
+and reuse prior dispositions.
+
+A research session is complete when all domains and source candidates have a disposition, discovery outputs are selected or have documented gaps for a new review, significant conflicts have a reasoned recommendation or explicit gap, evidence and rights limitations are visible, and the summary and packet pass the checks below. Complete research can contain unresolved claims; it does not establish C4/C5 readiness or release eligibility.
 
 ## Evidence and selection
 
@@ -71,6 +77,9 @@ In the data checkout, store each research packet under `data/curation/plant-revi
 Keep packet and claim IDs stable when revising; increment the revision and retain earlier delivered files. Compute SHA-256 of the final packet bytes and put the digest in the summary. Do not modify those bytes after presenting them for approval; corrections produce a new revision. Record the data checkout’s base commit and dirty state without resetting unrelated work. Use its pinned tooling revision for validation. `researchComplete` can become true only after all checks pass; packet status remains in progress and curatorApproval remains null.
 
 Use a concise table: claim ID, recommended value, applicable type/stage, source/reuse basis and essential qualification. Start with identity and counts. Group all claims by domain; keep every recommendation identifiable even when grouping rows. Follow with material conflicts/inferences and unresolved gaps. Link detailed evidence instead of reproducing the research narrative. Label licensing uncertainty prominently. Show source alternatives only when they change the approval decision.
+Show the selected photos in this summary and the curator handoff. Pair each
+photo with its exact subject, proposal ID and source, and label crop
+fallbacks. Record missing or unverifiable images as gaps.
 
 The curator can reply “Approve this packet except claim X; revise Y.” Record the exact packet ID, revision, digest, approved claim IDs, exceptions and curator/date in a separate approval record. Ambiguous approvals must be clarified before applying dependent changes. A revised value or changed evidence needs a new review. Approved content may still have pending rights or representation work; do not treat it as publishable.
 
