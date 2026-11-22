@@ -39,6 +39,9 @@
     "replacementPlantConceptId": {
       "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
     },
+    "browseCategoryIds": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/optionalIdentifierList"
+    },
     "evidenceReferenceIds": {
       "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/identifierList"
     }

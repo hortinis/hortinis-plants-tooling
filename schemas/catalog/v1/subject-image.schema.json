@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:subject-image",
+  "title": "Hortinis crop or cultivar image",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "subject",
+    "kind",
+    "creator",
+    "sourceUrl",
+    "licenceId",
+    "attribution",
+    "evidenceReferenceIds",
+    "reviewId",
+    "assetPath"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "subject": {
+      "allOf": [
+        {
+          "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/subjectReference"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "enum": ["plant-concept", "cultivar"]
+            }
+          }
+        }
+      ]
+    },
+    "kind": {
+      "enum": ["photo", "illustration"]
+    },
+    "creator": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "sourceUrl": {
+      "type": "string",
+      "pattern": "^https://[^\\s/]+(?:/[^\\s]*)?$"
+    },
+    "licenceId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "attribution": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "evidenceReferenceIds": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/identifierList"
+    },
+    "reviewId": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "assetPath": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/safeRelativePath"
+    }
+  }
+}

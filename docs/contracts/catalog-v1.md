@@ -242,3 +242,35 @@ publication or bypass commercial eligibility. Its checked inventory reports sele
 and filtered records separately. Candidate metadata remains non-publishable until
 rights, compatibility/version coordination and release-process gates are satisfied.
 See the [profile](https://github.com/hortinis/hortinis-plants/blob/HEAD/data/releases/reviewed-catalog/README.md).
+
+## Crop discovery records
+
+A `browse-category` has an opaque ID and a nonblank English and French label.
+A plant concept may list several distinct `browseCategoryIds`. Each reference
+must resolve to a category in the same snapshot. An omitted or empty list
+means the concept has no editorial membership and remains available in search
+and the full list. Browse memberships describe navigation and are independent
+of sourced rotation and cultivation classifications.
+
+A `subject-image` links one photo or illustration to an exact plant concept
+or cultivar. Its HTTPS `sourceUrl` identifies the source record.
+`assetPath` is a safe relative path to the distributed image. The consumer
+resolves this path only within a verified artifact set. Creator, attribution,
+licence, evidence references and review are mandatory when an image record is
+included. The image evidence and associated rights review must authorize the
+specific file and any distributed adaptations. The selected licence must match
+the image rights decision. A consumer can display a plant concept image as a
+labeled fallback for a cultivar when no exact image is available.
+
+The pilot `tomato_fruit_type` assertion and fact use the stable values
+`cherry` and `oxheart`. These are horticultural fruit categories and the
+subject must be an exact cultivar. Preserve the named source material and
+growing setting. When the source supplies only a different descriptor or the
+cultivar classification is unknown, omit the fact. Consumers retain multiple
+source claims and their applicability and distinguish missing evidence from
+a documented result. The existing fact context, evidence and review links
+carry both supported codes.
+
+Projection, manifest integration and offline image-pack delivery are subsequent
+work. The image-pack check will compare catalog size and verified offline
+availability before and after adding the pack.

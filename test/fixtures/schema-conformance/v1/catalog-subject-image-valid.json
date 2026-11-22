@@ -1,0 +1,15 @@
+{
+  "id": "image-fixture-a",
+  "subject": {
+    "type": "cultivar",
+    "id": "cultivar-fixture-a"
+  },
+  "kind": "photo",
+  "creator": "Fixture author",
+  "sourceUrl": "https://example.test/asset",
+  "licenceId": "licence-fixture-a",
+  "attribution": "Fixture author, CC0",
+  "evidenceReferenceIds": ["evidence-fixture-a"],
+  "reviewId": "review-fixture-a",
+  "assetPath": "assets/subject.jpg"
+}

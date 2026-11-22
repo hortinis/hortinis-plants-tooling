@@ -1573,6 +1573,76 @@
           }
         ]
       }
+    },
+    {
+      "id": "catalog-browse-category-valid",
+      "schemaId": "urn:hortinis:plants:schema:v1:browse-category",
+      "fixture": "catalog-browse-category-valid.json",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "catalog-browse-category-missing-french",
+      "schemaId": "urn:hortinis:plants:schema:v1:browse-category",
+      "fixture": "catalog-browse-category-missing-french.json",
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "instancePath": "/label",
+            "keyword": "required"
+          }
+        ]
+      }
+    },
+    {
+      "id": "catalog-subject-image-valid",
+      "schemaId": "urn:hortinis:plants:schema:v1:subject-image",
+      "fixture": "catalog-subject-image-valid.json",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "catalog-subject-image-unsafe-path",
+      "schemaId": "urn:hortinis:plants:schema:v1:subject-image",
+      "fixture": "catalog-subject-image-unsafe-path.json",
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "instancePath": "/assetPath",
+            "keyword": "pattern"
+          }
+        ]
+      }
+    },
+    {
+      "id": "catalog-tomato-fruit-type-valid",
+      "schemaId": "urn:hortinis:plants:schema:v1:plant-fact",
+      "fixture": "catalog-tomato-fruit-type-valid.json",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "catalog-tomato-fruit-type-invalid",
+      "schemaId": "urn:hortinis:plants:schema:v1:plant-fact",
+      "fixture": "catalog-tomato-fruit-type-invalid.json",
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "instancePath": "",
+            "keyword": "if"
+          },
+          {
+            "instancePath": "/value",
+            "keyword": "enum"
+          }
+        ]
+      }
     }
   ]
 }

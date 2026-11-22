@@ -28,6 +28,7 @@
       "enum": [
         "life_cycle",
         "cultivar_description",
+        "tomato_fruit_type",
         "plant_form_description",
         "horticultural_classification",
         "regulated_seed_eligibility",
@@ -74,6 +75,31 @@
     }
   },
   "allOf": [
+    {
+      "if": {
+        "properties": {
+          "predicate": {
+            "const": "tomato_fruit_type"
+          }
+        },
+        "required": ["predicate"]
+      },
+      "then": {
+        "properties": {
+          "subject": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "cultivar"
+              }
+            }
+          },
+          "value": {
+            "enum": ["cherry", "oxheart"]
+          }
+        }
+      }
+    },
     {
       "if": {
         "required": ["predicate"],

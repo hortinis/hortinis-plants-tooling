@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hortinis:plants:schema:v1:browse-category",
+  "title": "Hortinis crop browse category",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "label"],
+  "properties": {
+    "id": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/stableIdentifier"
+    },
+    "label": {
+      "$ref": "urn:hortinis:plants:schema:v1:common#/$defs/englishFrenchText"
+    }
+  }
+}

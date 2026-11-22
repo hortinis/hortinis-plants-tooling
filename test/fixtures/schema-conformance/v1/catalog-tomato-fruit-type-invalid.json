@@ -1,0 +1,13 @@
+{
+  "id": "fact-fixture-a",
+  "status": "active",
+  "subject": {
+    "type": "cultivar",
+    "id": "cultivar-fixture-a"
+  },
+  "predicate": "tomato_fruit_type",
+  "value": "Cherry",
+  "contextId": "context-fixture-a",
+  "evidenceReferenceIds": ["evidence-fixture-a"],
+  "reviewId": "review-fixture-a"
+}
